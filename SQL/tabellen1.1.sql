@@ -284,16 +284,13 @@ CREATE TABLE bestellt (
 	CONSTRAINT bestelltPK PRIMARY KEY (BID)
 );
 
-CREATE DOMAIN Teilestatus AS varchar(10) CHECK (VALUE~'RESERVIERT' OR VALUE~'VERFÜGBAR');
-
---Schwachen Entitätstyp beibehalten ?! 
---TODO: Siehe Trigger carPartsArrived
+--Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
 	TeileID integer,
 	TeiletypID integer,
 	lagert_in integer,
 	Lieferdatum date,
-	Status Teilestatus DEFAULT 'VERFÜGBAR',
+	Aufträge Auftrag DEFAULT NULL,
 	
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (lagert_in) REFERENCES Teilelager,
