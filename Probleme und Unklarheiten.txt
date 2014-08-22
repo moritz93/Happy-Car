@@ -1,0 +1,14 @@
+Mögliche Probleme / Unklarheiten:
+
+Dennis:
+Zu jedem Werk genau ein Teilelager => Entität Teilelager nur Kopie aller Ids von Werke => Beziehung lagert in von Autoteile nach Werke statt Teilelager, Teilelager löschen oder ID für Teilelager einführen, WerkID und TeilelagerID primär machen,  (=>) mehr als ein Teilelager pro Werk möglich machen  (???)
+
+Wertebereich von Auftragsstatus klären.
+
+ER-Modelle Werke mit Aufträge verbinden (Realisiert in Tabelle Werksaufträge)
+
+
+Moritz:
+1. Auto- und Teilelagerarbeiter brauchen ihre MID von Lagerarbeiter statt Mitarbeiter.
+
+
