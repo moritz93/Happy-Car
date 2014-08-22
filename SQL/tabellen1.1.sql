@@ -267,7 +267,6 @@ CREATE TABLE produzieren (
 
 --ID bei bestellt eingeführt
 --Auftragsid als Attribut hinzugefügt
---TODO: Im ER-Modell vermerken (?)
 CREATE TABLE bestellt (
 	BID integer,
 	HID integer,
@@ -284,16 +283,18 @@ CREATE TABLE bestellt (
 	CONSTRAINT bestelltPK PRIMARY KEY (BID)
 );
 
+--TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
 --Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
 	TeileID integer,
 	TeiletypID integer,
 	lagert_in integer,
 	Lieferdatum date,
-	Aufträge Auftrag DEFAULT NULL,
+	AID integer DEFAULT NULL,
 	
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (lagert_in) REFERENCES Teilelager,
+	FOREIGN KEY (AID) REFERENCES Aufträge,
 	
 	CONSTRAINT autoteilePK PRIMARY KEY (TeileID)
 );
