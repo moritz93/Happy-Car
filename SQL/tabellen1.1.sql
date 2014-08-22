@@ -267,7 +267,6 @@ CREATE TABLE produzieren (
 
 --ID bei bestellt eingeführt
 --Auftragsid als Attribut hinzugefügt
---TODO: Im ER-Modell vermerken (?)
 CREATE TABLE bestellt (
 	BID integer,
 	HID integer,
@@ -290,12 +289,13 @@ CREATE TABLE Autoteile (
 	TeiletypID integer,
 	lagert_in integer,
 	Lieferdatum date,
-	Aufträge Auftrag DEFAULT NULL,
+	AID integer DEFAULT NULL,
 	
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (lagert_in) REFERENCES Teilelager,
+	FOREIGN KEY (AID) REFERENCES Aufträge,
 	
-	CONSTRAINT autoteilePK PRIMARY KEY (TeileID, TeiletypID, lagert_in)
+	CONSTRAINT autoteilePK PRIMARY KEY (TeileID)
 );
 
 CREATE TABLE Motoren (

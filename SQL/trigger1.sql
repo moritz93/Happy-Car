@@ -1,4 +1,4 @@
-﻿--Werksid not Null trigger 
+--Werksid not Null trigger 
 --checked :)
 CREATE FUNCTION checkWerksid() RETURNS TRIGGER AS
 	$$ BEGIN
@@ -43,6 +43,8 @@ CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
 		UPDATE Autos SET Status='LIEFERND' WHERE kfz_id=NEW.kfz_id AND modell_id=NEW.modell_id;
 		RETURN NEW;
 	END;$$ LANGUAGE plpgsql;
+
+
 CREATE TRIGGER setOnDelivery AFTER INSERT ON liefert FOR EACH ROW EXECUTE PROCEDURE newDelivery();
 
 --Delivery finished trigger
