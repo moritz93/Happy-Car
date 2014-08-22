@@ -8,10 +8,13 @@
 	Email varchar(50) NOT NULL,
 	Tel bigint NOT NULL,
 	
-	CONSTRAINT personenPK PRIMARY KEY (PID)
+	CONSTRAINT personenPK PRIMARY KEY (PID),
 	--PLZ die mit 00 beginnen sind definitiv ungültig.
+
+	CONSTRAINT validEmail CHECK (Email LIKE '%_@__%.__%'),
+	-- PLZ muss fünfstellig sein.
+	CONSTRAINT validPLZ CHECK (PLZ LIKE '_____')
 	--CONSTRAINT validPLZ CHECK (PLZ ~ '/^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/'),
-	--CONSTRAINT validEmail CHECK (Email ~* '^[a-zA-Z0-9_-.]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$')
 );
 
 CREATE TABLE Werke (
@@ -270,7 +273,7 @@ CREATE TABLE bestellt (
 	WID integer,
 	TeiletypID integer,
 	Bestelldatum date,
-	AID integer
+	AID integer,
 	
 	FOREIGN KEY (HID) REFERENCES Hersteller,
 	FOREIGN KEY (WID) REFERENCES Werke,

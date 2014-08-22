@@ -1,7 +1,8 @@
 ﻿--ANM: PLZ mit 00 am Anfang ungültig
---INSERT INTO Personen VALUES (19, 'Gina', 'Wild', '66666', 'Puffotterstr.6','G-String','gina@youporn.com', 0190464646),
+INSERT INTO Personen VALUES (50, 'Gina', 'Wild', '700000', 'Puffotterstr.6','G-String','gina@youporn.com', 0190464646);
 --			    (20, 'Günther', 'Kotz', '00123', 'Darmweg 1', 'Gammeltown', 'jfdioahf@nga.hdu', 3758910756),
 --			    (21, 'Mustafa', 'Sandal', '12345', 'Rururustr.1', 'Rururustadt', 'hbvoa@bjspi.de', 3975057044209);
+--                         (22, 'Gretchen', 'Lotte', '17345', 'Goethestr.', 'Güllen', 'adfasdf.gamil.de.gammel', 89890102343);
 --ANM: INSERT in Werksarbeiter mit Wid=NULL ungültig
 --INSERT INTO Werksarbeiter (Pid) VALUES (19);
 
