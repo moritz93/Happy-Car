@@ -295,7 +295,7 @@ CREATE TABLE Autoteile (
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (lagert_in) REFERENCES Teilelager,
 	
-	CONSTRAINT autoteilePK PRIMARY KEY (TeileID, TeiletypID, lagert_in)
+	CONSTRAINT autoteilePK PRIMARY KEY (TeileID)
 );
 
 CREATE TABLE Motoren (
