@@ -106,6 +106,7 @@ CREATE TABLE Großhändler (
 	Ort varchar(50) NOT NULL,
 	Rabatt integer,
 	
+	CONSTRAINT validPLZ CHECK (PLZ LIKE '_____'),
 	--CONSTRAINT validPLZ CHECK (PLZ ~ '/^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/'),
 	CONSTRAINT validDiscount CHECK (rabatt>=0 AND rabatt<=100),
 	CONSTRAINT großhändlerPK PRIMARY KEY (GID)
