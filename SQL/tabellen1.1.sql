@@ -179,7 +179,7 @@ CREATE DOMAIN Auftragsstatus AS varchar(14)
 CREATE TABLE Werksaufträge (
 	WID integer,
 	AID integer,
-	Status Auftragsstatus,
+	Status Auftragsstatus DEFAULT 'WARTEND',
 	
 	FOREIGN KEY (WID) REFERENCES Werke,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
@@ -196,9 +196,11 @@ CREATE TABLE Autoteiltypen (
 	CONSTRAINT validMaxPrice CHECK (maxPreis>0)
 );
 
+-- TODO Anzahl in
 CREATE TABLE Modellteile (
 	Modell_ID integer,
 	TeiletypID integer,
+	Anzahl integer,
 
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
@@ -252,16 +254,18 @@ CREATE TABLE Hersteller (
 	CONSTRAINT herstellerPK PRIMARY KEY (HID)
 );
 
+--TODO: Zeit eingefügt, in ER etc machen unso is klar
 CREATE TABLE produzieren (
 	TeiletypID integer,
 	HID integer,
 	Preis numeric(10,2),
+	Zeit integer,
 
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (HID) REFERENCES Hersteller,
 	
 	CONSTRAINT produzierenPK PRIMARY KEY (TeiletypID, HID)
-,
+,	CONSTRAINT validTime CHECK (Zeit>0),
 	CONSTRAINT validPrice CHECK (Preis>0)
 );
 
@@ -283,7 +287,7 @@ CREATE TABLE bestellt (
 	CONSTRAINT bestelltPK PRIMARY KEY (BID)
 );
 
---TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
+-- TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
 --Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
 	TeileID integer,
@@ -299,6 +303,8 @@ CREATE TABLE Autoteile (
 	CONSTRAINT autoteilePK PRIMARY KEY (TeileID)
 );
 
+
+-- Autoteile
 CREATE TABLE Motoren (
 	TeiletypID integer,
 	PS integer NOT NULL,
