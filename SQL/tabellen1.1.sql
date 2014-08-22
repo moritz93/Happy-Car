@@ -283,6 +283,7 @@ CREATE TABLE bestellt (
 	CONSTRAINT bestelltPK PRIMARY KEY (BID)
 );
 
+--TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
 --Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
 	TeileID integer,

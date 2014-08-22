@@ -11,4 +11,4 @@ ER-Modelle Werke mit Aufträge verbinden (Realisiert in Tabelle Werksaufträge)
 Moritz:
 1. Auto- und Teilelagerarbeiter brauchen ihre MID von Lagerarbeiter statt Mitarbeiter.
 
-
+Scannen löscht aus bestellungen (archiviert) und insert in Autoteile mit Auftragsid als Transaktion
