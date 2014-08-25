@@ -271,11 +271,13 @@ CREATE TABLE produzieren (
 
 --ID bei bestellt eingeführt
 --Auftragsid als Attribut hinzugefügt
+-- TODO anzahl added -> ER-Modell
 CREATE TABLE bestellt (
-	BID integer,
+	BID SERIAL,
 	HID integer,
 	WID integer,
 	TeiletypID integer,
+	Anzahl integer,
 	Bestelldatum date,
 	AID integer,
 	

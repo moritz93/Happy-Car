@@ -12,3 +12,16 @@ Moritz:
 1. Auto- und Teilelagerarbeiter brauchen ihre MID von Lagerarbeiter statt Mitarbeiter.
 
 Scannen löscht aus bestellungen (archiviert) und insert in Autoteile mit Auftragsid als Transaktion
+
+
+
+
+TODO:
+- CONSTRAINT TRIGGER
+- mithilfe von RULES logische Datenunabhängigkeit implementieren
+
+
+-Sichten:
+	-> Lagermitarbeiter (Bestellungen)
+	-> Kunden (Auftragsstatus/Lieferzeit abrufen)
+	-> Hersteller (neue Teile einfügen)

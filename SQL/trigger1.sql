@@ -73,11 +73,15 @@ CREATE TRIGGER setOnCarPartsArrived BEFORE DELETE ON bestellt FOR EACH ROW EXECU
 --on insert Werksaufträge
 CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS 
 	$$ BEGIN
-		RETURN (SELECT HID FROM
+		RETURN
+		(SELECT HID FROM
 			(SELECT * FROM produzieren WHERE TeiletypID=$1
 			ORDER BY Zeit ASC
-			FETCH FIRST 3 ROWS ONLY) AS tmp
-			WHERE Preis=(SELECT min(Preis) FROM tmp));
+			FETCH FIRST 3 ROWS ONLY
+			) AS tmp
+		ORDER BY Preis ASC
+		FETCH FIRST 1 ROWS ONLY
+		);			
 	END; $$ LANGUAGE plpgsql;
 		
 
@@ -86,45 +90,58 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 	DECLARE
 		missing boolean;
 		neededParts integer;
-		part RECORD;
-	BEGIN
+		part integer;
 
+		
+		-- debug print
+		countNeeded integer;
+		
+	BEGIN
+		RAISE NOTICE 'Trigger executed';
+		
+		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 		missing:=EXISTS (SELECT * FROM 
-			--Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
-			((SELECT TeiletypID, count(*) FROM Autoteile WHERE AID IS NULL GROUP BY TeiletypID) AS tmp1
+			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
+			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = NEW.WID AND AID IS NULL GROUP BY TeiletypID) AS tmp1
 			 NATURAL JOIN
 			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
-			(SELECT TeiletypID, Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) AS countNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID)) AS tmp2)
+			(SELECT TeiletypID, Anzahl * countNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2)
 		WHERE countNeeded>count) AS missingParts;
+
+		RAISE NOTICE 'countNeeded: %', countNeeded;
+		
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
+			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
+				RAISE NOTICE 'TeiletypId: %', part;
 				--Anzahl wieoft Teil gebraucht wird.
-				neededParts:=(SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID=part);
-				LOOP
-					IF(neededParts=0) THEN EXIT; END IF;
+				neededParts := (SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID = part);
+
+				IF(neededParts > 0) THEN
+					RAISE NOTICE 'neededParts_missing: %', neededParts;
 					--Bestelle die Teile
-					INSERT INTO bestellt (HID, WID, TeiletypID, Bestelldatum, AID) VALUES 
-							      (getBestManufacturer(part), NEW.WID, part, now(), NEW.AID);
-				END LOOP;
+					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
+							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NEW.AID);
+				END IF;
 			END LOOP;
 		ELSE --JA
+			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
-				
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts:=(SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID=part);
-				LOOP
-					IF(neededParts=0) THEN EXIT; END IF;
+				IF(neededParts > 0) THEN
+				RAISE NOTICE 'neededParts_in_stock: %', neededParts;
 					--Bestelle die Teile
-					INSERT INTO bestellt (HID, WID, TeiletypID, Bestelldatum, AID) VALUES 
-							      (getBestManufacturer(part), NEW.WID, part, now(), NULL);
+					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
+							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NULL);
 					--Setze bei genau einem Teil des benötigten Typs den Auftragsstatus
-					UPDATE Autoteile SET AID=NEW.AID FROM (SELECT TeileID FROM Autoteile WHERE TeiletypID=part AND AID IS NULL ORDER BY ID ASC LIMIT 1) AS alias;
-				END LOOP;
+					UPDATE Autoteile SET AID=NEW.AID FROM (SELECT TeileID FROM Autoteile WHERE TeiletypID=part AND AID IS NULL ORDER BY ID ASC LIMIT neededParts) AS alias;
+				END IF;
 			END LOOP;
 			-- Es sind alle Teile da, wird irgendein auftrag gerade aufgeführt? Wenn nein dann führe diesen hier aus.
 			IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=NEW.WID)) THEN
