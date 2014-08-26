@@ -77,6 +77,7 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 			WHERE countNeed>count) AS missingParts;
 		IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=OLD.WID) AND available) THEN
 				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=OLD.WID AND AID=OLD.AID;
+		END IF;
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 -- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
@@ -178,7 +179,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	expectedTime=0;
 	FOR aid IN (SELECT AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
-		liefer=SELECT Vorraussichtliches_Lieferdatum FROM Aufträge;
+		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge);
 		expectedTime=expectedTime+(liefer-CURRENT_DATE);
 	END LOOP;
 	RETURN expectedTime * interval '1 days';
@@ -187,6 +188,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 
 CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$
+	BEGIN
 	RETURN CEIL(($1/50)/24)*interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
@@ -253,9 +255,9 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	counter:=(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
-		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+distance WHERE AID=NEW.AID;
+		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+getTimeForDistance(distance) WHERE AID=NEW.AID;
 		IF (lkw IS NULL OR driver IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
-			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID=NEW.Modell_ID LIMIT NEW.Anzahl;
+			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID=NEW.Modell_ID AND KFZ_ID IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID);
 		ELSE --JA, dann liefere sofort.
 			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID AND Status='LAGERND')
 			LOOP
@@ -272,7 +274,7 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 				minwerkid=werk;
 			END IF;
 		END LOOP;
-		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=minwerktime+distance+(CEIL(counter*1.5/24)*interval '1 days')) WHERE AID=NEW.AID;
+		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+minwerktime+getTimeForDistance(distance)+(CEIL(counter*1.5/24)*interval '1 days') WHERE AID=NEW.AID;
 		INSERT INTO Werksaufträge (WID, AID) VALUES (minwerkid, NEW.AID);			
 	
 	END IF;

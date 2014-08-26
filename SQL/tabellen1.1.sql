@@ -1,5 +1,5 @@
 ﻿CREATE TABLE Personen (
-	PID integer,
+	PID serial,
 	Vorname varchar NOT NULL,
 	Nachname varchar NOT NULL,
 	PLZ varchar(10) NOT NULL,
@@ -18,14 +18,14 @@
 );
 
 CREATE TABLE Werke (
-	WID integer,
+	WID serial,
 	Name varchar NOT NULL,
 	
 	CONSTRAINT werkePK PRIMARY KEY (WID)
 );
 
 CREATE TABLE Teilelager (
-	WID integer,
+	WID serial,
 	
 	FOREIGN KEY (WID) REFERENCES Werke,
 	
@@ -33,7 +33,7 @@ CREATE TABLE Teilelager (
 );
 
 CREATE TABLE Mitarbeiter (
-	PID integer,
+	PID serial,
 	Beschäftigungsbeginn date NOT NULL,
 	Gehalt numeric(10,2) NOT NULL,
 	
@@ -44,7 +44,7 @@ CREATE TABLE Mitarbeiter (
 );
 
 CREATE TABLE Werksarbeiter (
-	PID integer,
+	PID serial,
 	WID integer REFERENCES Werke,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
@@ -54,7 +54,7 @@ CREATE TABLE Werksarbeiter (
 
 
 CREATE TABLE LKW_Fahrer (
-	PID integer,
+	PID serial,
 	Führerscheindatum date NOT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
@@ -64,14 +64,14 @@ CREATE TABLE LKW_Fahrer (
 
 
 CREATE TABLE Verwaltungsangestellte (
-	PID integer,
+	PID serial,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
 
 	CONSTRAINT verwaltungsangestelltePK PRIMARY KEY (PID)
 );
 CREATE TABLE Lagerarbeiter (
-	PID integer NOT NULL,
+	PID serial,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
 
@@ -80,7 +80,7 @@ CREATE TABLE Lagerarbeiter (
 
 
 CREATE TABLE Teilelagerarbeiter (
-	PID integer,
+	PID serial,
 	WID integer NOT NULL,
 	
 	FOREIGN KEY (WID) REFERENCES Teilelager,
@@ -90,7 +90,7 @@ CREATE TABLE Teilelagerarbeiter (
 );
 
 CREATE TABLE Autolagerarbeiter (
-	PID integer,
+	PID serial,
 	
 	FOREIGN KEY (PID) REFERENCES Lagerarbeiter,
 
@@ -99,7 +99,7 @@ CREATE TABLE Autolagerarbeiter (
 
 
 CREATE TABLE Großhändler (
-	GID integer,
+	GID serial,
 	Firmenname varchar(50) NOT NULL,
 	Straße varchar(50) NOT NULL,
 	PLZ varchar (10) NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE Großhändler (
 );
 
 CREATE TABLE Modelle (
-	Modell_ID integer,
+	Modell_ID serial,
 	Preis numeric(10,2) NOT NULL,
 	Bezeichnung varchar NOT NULL,
 	
@@ -123,7 +123,7 @@ CREATE TABLE Modelle (
 );
 
 CREATE TABLE Kunden (
-	PID integer,
+	PID serial,
 	Distanz integer NOT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Personen,
@@ -135,7 +135,7 @@ CREATE TABLE Kunden (
 
 
 CREATE TABLE Privatkunden (
-	PID integer,
+	PID serial,
 	
 	FOREIGN KEY (PID) REFERENCES Kunden,
 
@@ -144,7 +144,7 @@ CREATE TABLE Privatkunden (
 
 
 CREATE TABLE Kontaktpersonen (
-	PID integer,
+	PID serial,
 	GID integer NOT NULL,
 	
 	FOREIGN KEY (GID) REFERENCES Großhändler,
@@ -154,7 +154,7 @@ CREATE TABLE Kontaktpersonen (
 );
 
 CREATE TABLE Aufträge (
-	AID integer,
+	AID serial,
 	Preis numeric(10,2) NOT NULL,
 	Vorraussichtliches_Lieferdatum date,
 	Modell_ID integer NOT NULL,
@@ -188,7 +188,7 @@ CREATE TABLE Werksaufträge (
 );
 
 CREATE TABLE Autoteiltypen (
-	TeiletypID integer,
+	TeiletypID serial,
 	maxPreis numeric(10,2) NOT NULL,
 	Bezeichnung varchar NOT NULL,
 	
@@ -224,7 +224,7 @@ CREATE TABLE Autos (
 );
 
 CREATE TABLE LKWs (
-	LKW_ID integer,
+	LKW_ID serial,
 	Kaufdatum date NOT NULL,
 
 	CONSTRAINT lkwsPK PRIMARY KEY (LKW_ID)
@@ -248,7 +248,7 @@ CREATE TABLE liefert (
 );
 
 CREATE TABLE Hersteller (
-	HID integer NOT NULL,
+	HID serial,
 	Firmennamen varchar NOT NULL,
 
 	CONSTRAINT herstellerPK PRIMARY KEY (HID)
@@ -294,7 +294,7 @@ CREATE TABLE bestellt (
 -- TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
 --Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
-	TeileID integer,
+	TeileID serial,
 	TeiletypID integer,
 	lagert_in integer,
 	Lieferdatum date,
@@ -310,7 +310,7 @@ CREATE TABLE Autoteile (
 
 -- Autoteile
 CREATE TABLE Motoren (
-	TeiletypID integer,
+	TeiletypID serial,
 	PS integer NOT NULL,
 	Drehzahl integer NOT NULL,
 	Verbrauch integer NOT NULL,
@@ -324,7 +324,7 @@ CREATE TABLE Motoren (
 );
 
 CREATE TABLE Karosserien (
-	TeiletypID integer,
+	TeiletypID serial,
 	Farbe varchar NOT NULL,
 	Material varchar NOT NULL,
 	Höhe integer NOT NULL,
@@ -341,7 +341,7 @@ CREATE TABLE Karosserien (
 CREATE DOMAIN Türart AS varchar(10) CHECK (VALUE~'FLÜGELTÜR' OR VALUE~'KOFFERRAUM' OR VALUE~'SCHIEBETÜR' OR VALUE~'NORMAL' );
 
 CREATE TABLE Türen (
-	TeiletypID integer,
+	TeiletypID serial,
 	Farbe varchar NOT NULL,
 	Türart varchar,
 	
@@ -351,7 +351,7 @@ CREATE TABLE Türen (
 );
 
 CREATE TABLE Fenster (
-	TeiletypID integer,
+	TeiletypID serial,
 	Tönung varchar NOT NULL,
 	Glasart varchar NOT NULL,
 
@@ -361,7 +361,7 @@ CREATE TABLE Fenster (
 );
 
 CREATE TABLE Reifen (
-	TeiletypID integer,
+	TeiletypID serial,
 	Farbe varchar NOT NULL,
 	Zoll integer NOT NULL,
 	Felgenmaterial varchar NOT NULL,
