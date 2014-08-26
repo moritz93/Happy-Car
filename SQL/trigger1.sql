@@ -154,7 +154,7 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 
--- TODO get estimated time for car prduction
+-- get estimated time for car prduction in Days
 CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS integer AS
 	$$
 	DECLARE
@@ -163,14 +163,21 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS integer AS
 	liefer date;
 		
 	BEGIN
+	expectedTime=0;
 	FOR aid IN (SELECT AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
 		liefer=SELECT Vorraussichtliches_Lieferdatum FROM Aufträge;
-		
-		
+		expectedTime=expectedTime+(liefer-CURRENT_DATE);
+	END LOOP;
+	RETURN expectedTime;
 	END;
 	$$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
+	$$
+	RETURN CEIL(($1/50)/24)*interval '1 days';
+	END;
+	$$ LANGUAGE plpgsql;
 
 -- TODO check if ordered cars are already produced
 -- Param (Modell_ID, Anzahl)
@@ -213,20 +220,35 @@ CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	$$ LANGUAGE plpgsql;
 
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
--- TODO
+-- TODO Modell_ID bei liefert sinnvoll ?!
 CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$
 	DECLARE
 	orderInStock boolean;
-	
+	counter integer;
+	cars integer;
+	driver integer;
+	lkw integer;
+	distance integer;
 	BEGIN
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
-
+	driver :=checkDriverAvailable();
+	lkw:=checkLkwAvailable();
+	distance:=(SELECT Distanz FROM Kunden WHERE PID=(SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
-		-- TODO
-		-- lkws available?
-		-- vorraussichtliche Lieferzeit mittels KundenDistanz berechnen
+		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+distance WHERE AID=NEW.AID;
+		IF (lkw IS NULL OR driver IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
+			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID=NEW.Modell_ID LIMIT NEW.Anzahl;
+		ELSE --JA, dann liefere sofort.
+			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID AND Status='LAGERND')
+			LOOP
+			EXIT WHEN counter=0;	
+				INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, cars, NEW.Modell_ID, driver, NEW.AID, now());
+				counter=counter-1;
+			END LOOP;
+		END IF;
+
 
 
 		
@@ -261,15 +283,15 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	IF (checkLkwAvailable() IS NULL OR checkDriverAvailable() IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
 		LOOP
 			EXIT WHEN counter=0;
-			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LAGERND', werk);
+			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'WARTEND', werk);
 			counter=counter-1;
 		END LOOP;
 	ELSE --JA, dann liefere sofort.
 		LOOP
 			EXIT WHEN counter=0;
-			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LIEFERND', werk);
+			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LAGERND', werk);
 			kfzid=(SELECT max(KFZ_ID) FROM Autos);
-			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (checkLkwAvailable(), kfzid+1, modellid, checkDriverAvailable(), OLD.AID, now());
+			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (checkLkwAvailable(), kfzid, modellid, checkDriverAvailable(), OLD.AID, now());
 			counter=counter-1;
 		END LOOP;
 	DELETE FROM Autoteile WHERE AID=OLD.AID;
