@@ -17,11 +17,12 @@ Scannen löscht aus bestellungen (archiviert) und insert in Autoteile mit Auftra
 
 
 TODO:
+- Alle integer PKs in SERIALs umändern, da diese nicht automatisch inkrementiert werden
 - CONSTRAINT TRIGGER
 - mithilfe von RULES logische Datenunabhängigkeit implementieren
 
 
 -Sichten:
 	-> Lagermitarbeiter (Bestellungen)
-	-> Kunden (Auftragsstatus/Lieferzeit abrufen)
+	-> Kunden (Auftragsstatus/Lieferzeit abrufen) -> Erledigt
 	-> Hersteller (neue Teile einfügen)
