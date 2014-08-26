@@ -153,6 +153,8 @@ CREATE TABLE Kontaktpersonen (
 	CONSTRAINT kontaktpersonenPK PRIMARY KEY (PID)
 );
 
+
+-- Datum = null entspricht noch nicht abgeschlossen.
 CREATE TABLE Aufträge (
 	AID serial,
 	Preis numeric(10,2) NOT NULL,
@@ -231,6 +233,7 @@ CREATE TABLE LKWs (
 );
 
 
+-- Lieferdatum null = noch nicht ausgeliefert
 CREATE TABLE liefert (
 	LKW_ID integer NOT NULL,
 	KFZ_ID integer,
