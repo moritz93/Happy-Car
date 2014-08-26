@@ -20,6 +20,7 @@ TODO:
 - Alle integer PKs in SERIALs umändern, da diese nicht automatisch inkrementiert werden
 - CONSTRAINT TRIGGER
 - mithilfe von RULES logische Datenunabhängigkeit implementieren
+- Sichten und Rules testen
 
 
 -Sichten:
