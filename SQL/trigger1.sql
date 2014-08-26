@@ -96,9 +96,7 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 		-- debug print
 		countNeeded integer;
 		
-	BEGIN
-		RAISE NOTICE 'Trigger executed';
-		
+	BEGIN		
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 		missing:=EXISTS (SELECT * FROM 
 			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
@@ -107,35 +105,33 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
 			(SELECT TeiletypID, Anzahl * countNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2)
 		WHERE countNeeded>count) AS missingParts;
-
-		RAISE NOTICE 'countNeeded: %', countNeeded;
 		
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
-			RAISE NOTICE 'Parts missing: %', missing;
+			-- RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
-				RAISE NOTICE 'TeiletypId: %', part;
+				--RAISE NOTICE 'TeiletypId: %', part;
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts := (SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID = part);
 
 				IF(neededParts > 0) THEN
-					RAISE NOTICE 'neededParts_missing: %', neededParts;
+					--RAISE NOTICE 'neededParts_missing: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NEW.AID);
 				END IF;
 			END LOOP;
 		ELSE --JA
-			RAISE NOTICE 'Parts missing: %', missing;
+			--RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts:=(SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID=part);
 				IF(neededParts > 0) THEN
-				RAISE NOTICE 'neededParts_in_stock: %', neededParts;
+				--RAISE NOTICE 'neededParts_in_stock: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NULL);
@@ -149,6 +145,39 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 			END IF;
 		END IF;	
 		RETURN NEW;
-	END; $$ LANGUAGE plpgsql;
+	END;
+	$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH ROW EXECUTE PROCEDURE insertInJobs();
+
+
+
+
+-- TODO get estimated time for car prduction
+CREATE OR REPLACE FUNCTION getWerksauslastung()
+	$$
+	$$ LANGUAGE plpsql;
+
+
+-- TODO check if ordered cars are already produced
+-- Param (Modell_ID, Anzahl)
+CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
+	$$
+	BEGIN
+	RETURN (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1) AS Anzahl >= $2
+	END;
+	$$ LANGUAGE plpsql;
+	
+-- onInsert Aufträge, teile Auftrag bestimmtem Werk zu
+-- TODO
+CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
+	$$
+	DECLARE
+	orderInStock boolean;
+	
+	BEGIN
+	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
+	END;
+	$$ LANGUAGE plpsql;
+	
+CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE insertInOrders();
