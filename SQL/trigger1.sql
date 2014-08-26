@@ -166,7 +166,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung()
 CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$
 	BEGIN
-	RETURN (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1) AS Anzahl >= $2
+	RETURN (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND') AS Anzahl >= $2
 	END;
 	$$ LANGUAGE plpsql;
 
@@ -180,6 +180,10 @@ CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	END;
 	$$ LANGUAGE plpsql;
 
+CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
+	$$
+	BEGIN
+	RETURN (SELECT 
 	
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu
 -- TODO
@@ -204,3 +208,30 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$ LANGUAGE plpsql;
 	
 CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE insertInOrders();
+
+--Bei Einchecken eines fertigen Auftrags, Einfügen der Autos
+CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
+	$$
+	DECLARE
+	counter integer;
+	modellid integer;
+	werk integer;	
+
+	BEGIN
+	modellid=SELECT Modell_ID FROM Aufträge WHERE AID=OLD.AID;
+	werk=SELECT WID FROM Werksauftäge WHERE AID=WID;
+	counter=SELECT Anzahl FROM Aufträge WHERE AID=OLD.AID;
+	IF (checkLkwAvailable() IS NULL) THEN
+		LOOP
+			EXIT WHEN counter=0;
+			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LAGERND', werk);
+			counter=counter-1;
+		END LOOP;
+	ELSE 
+		LOOP
+			EXIT WHEN counter=0;
+			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LIEFERND', werk);
+			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (
+			counter=counter-1;
+		END LOOP;
+			

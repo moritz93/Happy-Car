@@ -214,7 +214,7 @@ CREATE DOMAIN Autostatus AS varchar(10) CHECK (VALUE~'LAGERND' OR VALUE~'LIEFERN
 CREATE TABLE Autos (
 	KFZ_ID integer,
 	Modell_ID integer,
-	Status Autostatus,
+	Status Autostatus DEFAULT 'LAGERND',
 	produziertVon integer NOT NULL,
 
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
