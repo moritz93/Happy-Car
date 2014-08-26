@@ -281,7 +281,7 @@ CREATE TABLE bestellt (
 	Anzahl integer,
 	Bestelldatum date,
 	AID integer,
-	Status Bestellungsstatus, 
+	Status Bestellungsstatus DEFAULT 'BESTELLT', 
 	
 	FOREIGN KEY (HID) REFERENCES Hersteller,
 	FOREIGN KEY (WID) REFERENCES Werke,

@@ -62,12 +62,13 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 	DECLARE
 		teilid integer;
 	BEGIN
+		IF (OLD.Status='ARCHIVIERT' OR NEW.Status!='ARCHIVIERT') THEN RETURN NEW; END IF;
 		SELECT max(TeileID) INTO teilid FROM Autoteile;
 		INSERT INTO Autoteile (TeileId ,TeiletypID, lagert_in, Lieferdatum, AID) VALUES (teilid+1,OLD.TeiletypID, OLD.WID, now(), OLD.AID);
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 -- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
-CREATE TRIGGER setOnCarPartsArrived BEFORE DELETE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
+CREATE TRIGGER setOnCarPartsArrived AFTER UPDATE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
 
 
 --on insert Werksaufträge
