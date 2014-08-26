@@ -156,6 +156,8 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 -- TODO get estimated time for car prduction
 CREATE OR REPLACE FUNCTION getWerksauslastung()
 	$$
+	BEGIN
+	END;
 	$$ LANGUAGE plpsql;
 
 
@@ -167,6 +169,17 @@ CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	RETURN (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1) AS Anzahl >= $2
 	END;
 	$$ LANGUAGE plpsql;
+
+
+-- TODO check if a LKW is available - returns LKW_ID or null
+-- Param ()
+CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
+	$$
+	BEGIN
+	RETURN (SELECT * FROM LKWs WHERE Modell_ID = $1) AS Anzahl >= $2
+	END;
+	$$ LANGUAGE plpsql;
+
 	
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu
 -- TODO
@@ -177,6 +190,16 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	
 	BEGIN
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
+
+	-- Autos sind schon im Autolager
+	IF orderInStock THEN
+		UPDATE Aufträge SET Status='IN_BEARBEITUNG' WHERE WID=NEW.WID AND AID=NEW.AID;
+		
+	-- Autos sind noch nicht produziert
+	ELSE
+	--TODO
+	
+	END IF;
 	END;
 	$$ LANGUAGE plpsql;
 	
