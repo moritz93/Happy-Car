@@ -176,7 +176,13 @@ CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$
 	BEGIN
-	RETURN (SELECT * FROM LKWs WHERE Modell_ID = $1) AS Anzahl >= $2
+		RETURN
+		(	SELECT LKW_ID FROM LKWs
+			EXCEPT
+			SELECT LKW_ID FROM liefert
+			ORDER BY LKW_ID ASC
+			FETCH FIRST 1 ROWS ONLY
+		);
 	END;
 	$$ LANGUAGE plpsql;
 
@@ -185,7 +191,7 @@ CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	BEGIN
 	RETURN (SELECT 
 	
--- onInsert Aufträge, teile Auftrag bestimmtem Werk zu
+-- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
 -- TODO
 CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$
@@ -197,7 +203,11 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
-		UPDATE Aufträge SET Status='IN_BEARBEITUNG' WHERE WID=NEW.WID AND AID=NEW.AID;
+		-- TODO
+		-- lkws available?
+		-- vorraussichtliche Lieferzeit mittels KundenDistanz berechnen
+
+
 		
 	-- Autos sind noch nicht produziert
 	ELSE
