@@ -113,7 +113,7 @@ CREATE TABLE Großhändler (
 );
 
 CREATE TABLE Modelle (
-	ModellID integer,
+	Modell_ID integer,
 	Preis numeric(10,2) NOT NULL,
 	Bezeichnung varchar NOT NULL,
 	
