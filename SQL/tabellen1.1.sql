@@ -117,7 +117,7 @@ CREATE TABLE Modelle (
 	Preis numeric(10,2) NOT NULL,
 	Bezeichnung varchar NOT NULL,
 	
-	CONSTRAINT modellePK PRIMARY KEY (ModellID),
+	CONSTRAINT modellePK PRIMARY KEY (Modell_ID),
 
 	CONSTRAINT validPrice CHECK(Preis>0)
 );
@@ -271,7 +271,8 @@ CREATE TABLE produzieren (
 
 --ID bei bestellt eingeführt
 --Auftragsid als Attribut hinzugefügt
--- TODO anzahl added -> ER-Modell
+-- TODO anzahl added -> ER-Modell, Relationales Modell brauch neues Feld Status in {ARCHIVIERT, BESTELLT}
+CREATE DOMAIN Bestellungsstatus AS varchar(10) CHECK (VALUE~'ARCHIVIERT' OR VALUE~'BESTELLT');
 CREATE TABLE bestellt (
 	BID SERIAL,
 	HID integer,
@@ -280,6 +281,7 @@ CREATE TABLE bestellt (
 	Anzahl integer,
 	Bestelldatum date,
 	AID integer,
+	Status Bestellungsstatus, 
 	
 	FOREIGN KEY (HID) REFERENCES Hersteller,
 	FOREIGN KEY (WID) REFERENCES Werke,

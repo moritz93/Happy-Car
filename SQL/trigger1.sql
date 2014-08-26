@@ -57,7 +57,6 @@ CREATE FUNCTION finishedDelivery() RETURNS TRIGGER AS
 CREATE TRIGGER setOnDeliveryFinished AFTER DELETE ON liefert FOR EACH ROW EXECUTE PROCEDURE finishedDelivery();
 
 --car parts arrived
--- TODO trigger on delete nur bei Archivtabelle, falls nur status dann on update
 CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
@@ -67,6 +66,7 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 		INSERT INTO Autoteile (TeileId ,TeiletypID, lagert_in, Lieferdatum, AID) VALUES (teilid+1,OLD.TeiletypID, OLD.WID, now(), OLD.AID);
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
+-- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
 CREATE TRIGGER setOnCarPartsArrived BEFORE DELETE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
 
 
@@ -154,21 +154,34 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 -- TODO get estimated time for car prduction
-CREATE OR REPLACE FUNCTION getWerksauslastung()
+CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS integer AS
 	$$
+	DECLARE
+	aid integer;
+	expectedTime integer;
+	liefer date;
+		
 	BEGIN
+	FOR aid IN (SELECT AID FROM Werksaufträge WHERE WID=$1)
+	LOOP
+		liefer=SELECT Vorraussichtliches_Lieferdatum FROM Aufträge;
+		
+		
 	END;
-	$$ LANGUAGE plpsql;
+	$$ LANGUAGE plpgsql;
 
 
 -- TODO check if ordered cars are already produced
 -- Param (Modell_ID, Anzahl)
 CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$
+	DECLARE 
+	counting integer;
 	BEGIN
-	RETURN (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND') AS Anzahl >= $2
+	counting=(SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND');
+	RETURN counting>=$2;
 	END;
-	$$ LANGUAGE plpsql;
+	$$ LANGUAGE plpgsql;
 
 
 -- TODO check if a LKW is available - returns LKW_ID or null
@@ -177,20 +190,27 @@ CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$
 	BEGIN
 		RETURN
-		(	SELECT LKW_ID FROM LKWs
+		(	(SELECT LKW_ID FROM LKWs
 			EXCEPT
-			SELECT LKW_ID FROM liefert
+			SELECT LKW_ID FROM liefert)
 			ORDER BY LKW_ID ASC
 			FETCH FIRST 1 ROWS ONLY
 		);
 	END;
-	$$ LANGUAGE plpsql;
+	$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	$$
 	BEGIN
-	RETURN (SELECT 
-	
+	RETURN (	(SELECT PID FROM LKW_Fahrer 
+			EXCEPT 
+			SELECT MID AS PID FROM liefert) 
+			ORDER BY PID ASC 
+			FETCH FIRST 1 ROWS ONLY
+	);
+	END;
+	$$ LANGUAGE plpgsql;
+
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
 -- TODO
 CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
@@ -214,8 +234,9 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	--TODO
 	
 	END IF;
+	RETURN NULL;
 	END;
-	$$ LANGUAGE plpsql;
+	$$ LANGUAGE plpgsql;
 	
 CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE insertInOrders();
 
@@ -226,22 +247,33 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	counter integer;
 	modellid integer;
 	werk integer;	
-
+	kfzid integer;
 	BEGIN
-	modellid=SELECT Modell_ID FROM Aufträge WHERE AID=OLD.AID;
-	werk=SELECT WID FROM Werksauftäge WHERE AID=WID;
-	counter=SELECT Anzahl FROM Aufträge WHERE AID=OLD.AID;
-	IF (checkLkwAvailable() IS NULL) THEN
+	--Es wird nur etwas getan, falls die Änderung auch von bel Status zu AUSGEFÜHRT war
+	IF (OLD.Status='AUSGEFÜHRT' OR NEW.Status!='AUSGEFÜHRT') THEN 
+		RETURN NULL;
+	END IF;
+	modellid=(SELECT Modell_ID FROM Aufträge WHERE AID=OLD.AID);
+	werk=(SELECT WID FROM Werksauftäge WHERE AID=WID);
+	counter=(SELECT Anzahl FROM Aufträge WHERE AID=OLD.AID);
+	--Gibt es einen freien LKW und Fahrer?
+	IF (checkLkwAvailable() IS NULL OR checkDriverAvailable() IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
 		LOOP
 			EXIT WHEN counter=0;
 			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LAGERND', werk);
 			counter=counter-1;
 		END LOOP;
-	ELSE 
+	ELSE --JA, dann liefere sofort.
 		LOOP
 			EXIT WHEN counter=0;
 			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LIEFERND', werk);
-			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (
+			kfzid=(SELECT max(KFZ_ID) FROM Autos);
+			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (checkLkwAvailable(), kfzid+1, modellid, checkDriverAvailable(), OLD.AID, now());
 			counter=counter-1;
 		END LOOP;
-			
+	DELETE FROM Autoteile WHERE AID=OLD.AID;
+	END IF;
+	END;
+	$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER onFinishedJob AFTER UPDATE ON Werksaufträge FOR EACH ROW EXECUTE PROCEDURE finishedJob();
