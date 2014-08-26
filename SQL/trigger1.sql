@@ -61,10 +61,22 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
 		teilid integer;
+		countNeeded integer;
+		available boolean;
 	BEGIN
 		IF (OLD.Status='ARCHIVIERT' OR NEW.Status!='ARCHIVIERT') THEN RETURN NEW; END IF;
 		SELECT max(TeileID) INTO teilid FROM Autoteile;
 		INSERT INTO Autoteile (TeileId ,TeiletypID, lagert_in, Lieferdatum, AID) VALUES (teilid+1,OLD.TeiletypID, OLD.WID, now(), OLD.AID);
+		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+		available:=NOT EXISTS (SELECT * FROM 
+			-- Wähle Autoteile, die diesem Auftrag zugeordnet sind 
+			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = OLD.WID AND AID=OLD.AID GROUP BY TeiletypID) AS tmp1
+			 NATURAL JOIN
+			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
+			(SELECT TeiletypID, Anzahl * countNeeded AS countNeed FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = OLD.AID)) AS tmp2)
+			WHERE countNeed>count) AS missingParts;
+		IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=OLD.WID) AND available) THEN
+				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=OLD.WID AND AID=OLD.AID;
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 -- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
@@ -104,8 +116,8 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = NEW.WID AND AID IS NULL GROUP BY TeiletypID) AS tmp1
 			 NATURAL JOIN
 			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
-			(SELECT TeiletypID, Anzahl * countNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2)
-		WHERE countNeeded>count) AS missingParts;
+			(SELECT TeiletypID, Anzahl * countNeeded AS countNeed FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2)
+		WHERE countNeed>count) AS missingParts;
 		
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
@@ -155,7 +167,7 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 -- get estimated time for car prduction in Days
-CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS integer AS
+CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$
 	DECLARE
 	aid integer;
@@ -169,7 +181,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS integer AS
 		liefer=SELECT Vorraussichtliches_Lieferdatum FROM Aufträge;
 		expectedTime=expectedTime+(liefer-CURRENT_DATE);
 	END LOOP;
-	RETURN expectedTime;
+	RETURN expectedTime * interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
 
@@ -230,11 +242,15 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	driver integer;
 	lkw integer;
 	distance integer;
+	werk integer;
+	minwerktime interval;
+	minwerkid integer;
 	BEGIN
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
 	driver :=checkDriverAvailable();
 	lkw:=checkLkwAvailable();
 	distance:=(SELECT Distanz FROM Kunden WHERE PID=(SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
+	counter:=(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
 		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+distance WHERE AID=NEW.AID;
@@ -248,13 +264,16 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 				counter=counter-1;
 			END LOOP;
 		END IF;
-
-
-
-		
-	-- Autos sind noch nicht produziert
-	ELSE
-	--TODO
+	ELSE	--NEIN, dann produziere
+		FOR werk IN (SELECT WID FROM Werksaufträge)
+		LOOP
+			IF (minwerktime>getWerksauslastung(werk)) THEN
+				minwerktime=getWerksauslastung(werk);
+				minwerkid=werk;
+			END IF;
+		END LOOP;
+		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=minwerktime+distance+(CEIL(counter*1.5/24)*interval '1 days')) WHERE AID=NEW.AID;
+		INSERT INTO Werksaufträge (WID, AID) VALUES (minwerkid, NEW.AID);			
 	
 	END IF;
 	RETURN NULL;
