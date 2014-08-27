@@ -54,18 +54,66 @@ CREATE OR REPLACE VIEW Herstellerbestellungen AS
 
 
 
--- Ermöglicht einem Lagerarbeiter das einscannen eingegangener Teilelieferungen
-CREATE OR REPLACE VIEW LieferungScannen AS
+-- Ermöglicht einem Teilelagerarbeiter das Einscannen eingegangener Teilelieferungen
+CREATE OR REPLACE VIEW Teilelagerarbeitersicht AS
 	SELECT BID AS BestellungsID FROM bestellt;
 
--- Notwendig da laut Postgres Doku von CREATE RULE:
--- "There is a catch if you try to use conditional rules for view updates: 
--- there must be an unconditional INSTEAD rule for each action you wish to allow on the view."
-CREATE OR REPLACE RULE scanCommandU AS ON UPDATE TO LieferungScannen
+CREATE OR REPLACE RULE scanCommandU AS ON UPDATE TO Teilelagerarbeitersicht
 DO INSTEAD NOTHING;
 
-CREATE OR REPLACE RULE scanIn AS ON UPDATE TO LieferungScannen
+CREATE OR REPLACE RULE scanIn AS ON UPDATE TO Teilelagerarbeitersicht
 DO ALSO UPDATE bestellt SET Status = 'ARCHIVIERT' WHERE BID = OLD.BestellungsID;
+
+
+
+-- Mittels dieser Sicht kann ein Autolagerarbeiter den aktuellen Autobestand einsehen
+CREATE OR REPLACE VIEW Autolagerarbeitersicht AS
+	SELECT KFZ_ID AS Fahrgestellnummer, Bezeichnung AS Modell, Status, Name as Werk
+	FROM Autos JOIN Modelle ON Autos.Modell_ID = Modelle.Modell_ID JOIN Werke ON Autos.produziertVon = Werke.WID;
+
+
+
+-- Die Schnittstelle über die ein Werksarbeiter Zugriff auf die Werksaufträge hat
+CREATE OR REPLACE VIEW Werksarbeitersicht AS
+	SELECT WID AS Werknummer, AID AS Auftragsnummer, Status FROM Werksaufträge;
+
+CREATE OR REPLACE RULE factoryU AS ON UPDATE TO Werksarbeitersicht
+DO INSTEAD NOTHING;
+
+CREATE OR REPLACE RULE factoryScan AS ON UPDATE TO Werksarbeitersicht
+WHERE OLD.Werknummer = NEW.Werknummer AND OLD.Auftragsnummer = NEW.Auftragsnummer
+DO ALSO UPDATE Werksaufträge SET Status = 'ARCHIVIERT' WHERE WID = OLD.Werknummer AND AID = OLD.Auftragsnummer;
+
+
+
+-- Die Informationen, die ein LKW Fahrer zur Auslieferung benötigt
+CREATE OR REPLACE VIEW LKW_FahrerSicht AS
+	SELECT Vorname AS Fahrervorname, Name AS Fahrernachname, MID AS FahrerID, liefert.LKW_ID AS LKW_Nummer, Autos.KFZ_ID AS Fahrgestellnummer_Ware,
+	liefert.AID AS Auftragsnummer, Aufträge.Status AS Auftragsstatus
+	FROM liefert JOIN Personen ON liefert.MID = Personen.PID JOIN Autos ON liefert.KFZ_ID = Autos.KFZ_ID 
+		JOIN Aufträge ON liefert.AID = Aufträge.AID;
+
+-- LKW Fahrer dürfen nur den Status auf 'ARCHIVIERT' setzten
+CREATE OR REPLACE RULE driverCommandU AS ON UPDATE TO LKW_FahrerSicht
+DO INSTEAD NOTHING;
+
+-- Setzt Lieferdatum auf aktuellen Zeitpunkt sobald die bestellten Autos beim Kunden ausgeliefert werden
+-- Hier durch wird die Lieferung im entsprechenden Index aufgenommen
+CREATE OR REPLACE RULE scanDeliveryDate AS ON UPDATE TO LKW_FahrerSicht
+WHERE OLD.Fahrervorname = NEW.Fahrervorname AND OLD.Fahrernachnahme = NEW.Fahrernachname AND OLD.LKW_Nummer = NEW.LKW_Nummer
+	AND OLD.Fahrgestellnummer_Ware = NEW.Fahrgestellnummer_Ware AND OLD.Auftragsnummer = NEW.Auftragsnummer AND OLD.FahrerID = NEW.FahrerID
+UPDATE liefert SET Lieferdatum = now() WHERE liefert.KFZ_ID = OLD.Fahrgestellnummer_Ware AND liefert.AID = OLD.Auftragsnummer AND liefert.MID = OLD.FahrerID;
+
+-- Zu diesem Zeitpunkt wird ebenfalls der Status jedes ausgelieferten Wagens auf 'ARCHIVIERT' gesetzt
+-- Das führt ebenfalls zur Aufnahme des Wagens in den Autolager Index
+CREATE OR REPLACE RULE scanDeliveryState AS ON UPDATE TO LKW_FahrerSicht
+WHERE OLD.Fahrervorname = NEW.Fahrervorname AND OLD.Fahrernachnahme = NEW.Fahrernachname AND OLD.LKW_Nummer = NEW.LKW_Nummer
+	AND OLD.Fahrgestellnummer_Ware = NEW.Fahrgestellnummer_Ware AND OLD.Auftragsnummer = NEW.Auftragsnummer AND OLD.FahrerID = NEW.FahrerID
+UPDATE Autos SET Status = 'ARCHIVIERT' WHERE Autos.KFZ_ID = OLD.Fahrgestellnummer_Ware;
+
+
+
+
 
 -- Personalmanagement -> Sicht die alle Spezialisierungen konsolidiert
 -- Für jedes Archiv eine View -> bestellungen
