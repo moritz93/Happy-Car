@@ -6,7 +6,7 @@
 	Straße varchar(50) NOT NULL,
 	Wohnort varchar(50) NOT NULL,
 	Email varchar(50) NOT NULL,
-	Tel bigint NOT NULL,
+	TelNr bigint NOT NULL,
 	
 	CONSTRAINT personenPK PRIMARY KEY (PID),
 	--PLZ die mit 00 beginnen sind definitiv ungültig.
