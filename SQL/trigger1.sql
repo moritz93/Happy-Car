@@ -43,9 +43,10 @@ CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
 		UPDATE Autos SET Status='LIEFERND' WHERE kfz_id=NEW.kfz_id AND modell_id=NEW.modell_id;
 		RETURN NEW;
 	END;$$ LANGUAGE plpgsql;
-
-
+	
 CREATE TRIGGER setOnDelivery AFTER INSERT ON liefert FOR EACH ROW EXECUTE PROCEDURE newDelivery();
+
+
 
 --Delivery finished trigger
 --checked :)
@@ -55,6 +56,8 @@ CREATE FUNCTION finishedDelivery() RETURNS TRIGGER AS
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER setOnDeliveryFinished AFTER DELETE ON liefert FOR EACH ROW EXECUTE PROCEDURE finishedDelivery();
+
+
 
 --car parts arrived
 CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
@@ -84,6 +87,7 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 CREATE TRIGGER setOnCarPartsArrived AFTER UPDATE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
 
 
+
 --on insert Werksaufträge
 CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS 
 	$$ BEGIN
@@ -99,6 +103,7 @@ CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS
 	END; $$ LANGUAGE plpgsql;
 		
 
+-- on insert Werksaufträge
 CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
@@ -167,7 +172,7 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 
--- get estimated time for car prduction in Days
+-- get estimated time for car production in days
 CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$
 	DECLARE
@@ -176,22 +181,27 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	liefer date;
 		
 	BEGIN
-	expectedTime=0;
+	expectedTime = 0;
 	FOR aid IN (SELECT AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
+		-- TODO liefer ist nicht korrekt?!
 		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge);
-		expectedTime=expectedTime+(liefer-CURRENT_DATE);
+		expectedTime = expectedTime + (liefer - CURRENT_DATE);
 	END LOOP;
 	RETURN expectedTime * interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
 
+
+
 CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$
 	BEGIN
+	-- 50km/h
 	RETURN CEIL(($1/50)/24)*interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
+
 
 -- TODO check if ordered cars are already produced
 -- Param (Modell_ID, Anzahl)
@@ -200,7 +210,7 @@ CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	DECLARE 
 	counting integer;
 	BEGIN
-	counting=(SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND');
+	counting = (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND');
 	RETURN counting>=$2;
 	END;
 	$$ LANGUAGE plpgsql;
@@ -232,6 +242,8 @@ CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	);
 	END;
 	$$ LANGUAGE plpgsql;
+
+
 
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
 -- TODO Modell_ID bei liefert sinnvoll ?!
@@ -283,6 +295,8 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$ LANGUAGE plpgsql;
 	
 CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE insertInOrders();
+
+
 
 --Bei Einchecken eines fertigen Auftrags, Einfügen der Autos
 CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
