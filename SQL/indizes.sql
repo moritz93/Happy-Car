@@ -2,7 +2,7 @@
 CREATE INDEX IDX_Autos ON Autos (KFZ_ID, Status) WHERE Status = 'ARCHIVIERT';
 
 -- Index Aufträge
-CREATE INDEX IDX_Aufträge ON Aufträge (AID, Status) WHERE Datum IS NOT NULL;
+CREATE INDEX IDX_Aufträge ON Aufträge (AID, Status) WHERE Lieferdatum IS NOT NULL;
 
 -- Index Werksaufträge
 CREATE INDEX IDX_Werksaufträge ON Werksaufträge (WID, AID, Status) WHERE Status = 'ARCHIVIERT';
