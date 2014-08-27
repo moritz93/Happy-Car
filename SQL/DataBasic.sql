@@ -1,5 +1,4 @@
-﻿--PLZ die mit 00 beginnen sind definitiv ungültig.
-INSERT INTO Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES 
+﻿INSERT INTO Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES 
 	('Peter', 'Müller', '66740', 'Hauptstr.1', 'Saarlouis', 'Peter.Müller@web.de', 0683100000),
 	('Hans Adolf', 'Bibelroy', '11111', 'Einsstr. 11', 'Einsstadt', 'Hans_Adolf@somepage.com', 11111111111),
 	('Sandra', 'Schmidt', '12487', 'Abram-Joffe-Straße 3', 'Berlin', 'S.Schmidt@joadkhgfa89.to', 017200011100),
@@ -19,7 +18,6 @@ INSERT INTO Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VA
 	('Peter', 'Schreiner', '54441', 'Kabuffstraße 8', 'Kanara', 'peter@gmx.de', 06581787878),
 	('Günther', 'Knopfler', '54341', 'Kirschenweg 1', 'Betonia', 'günther69@gmx.de', 065173458568),
 	('Luise', 'McKidney', '88076', 'Sackgässchen 1', 'Dorflo', 'luise@home.de', 0171443322);
---INVALIDSAMPLEDATA1.sql macht hier weiter mit ID 19
 
 
 INSERT INTO Werke (Name) VALUES
@@ -32,7 +30,7 @@ INSERT INTO Werke (Name) VALUES
 
 
 INSERT INTO Mitarbeiter VALUES
-	(0, '2011-11-11', 2000.00),
+	(1, '2011-11-11', 2000.00),
 	(2, '2012-12-12',1800.00),
 	(3, '1999-01-01', 1200.00),
 	(5, '1999-02-02', 3400.40),
@@ -50,9 +48,9 @@ INSERT INTO Mitarbeiter VALUES
 
 
 INSERT INTO Werksarbeiter VALUES
-	(0, 0),
-	(5, 1),
-	(17, 2);
+	(1, 1),
+	(5, 2),
+	(17, 3);
 
 
 INSERT INTO LKW_Fahrer VALUES 
@@ -101,8 +99,8 @@ INSERT INTO Privatkunden VALUES
 
 
 INSERT INTO Kontaktpersonen VALUES
-	(1, 0),
-	(6, 1);
+	(1, 1),
+	(6, 2);
 
 
 
@@ -135,11 +133,11 @@ INSERT INTO Autoteiltypen (maxPreis, Bezeichnung) VALUES
 
 INSERT INTO Modellteile VALUES
 --(Modell_ID, TeiletypID, Anzahl)
-	(0, 0, 1), (0, 6, 1), (0, 8, 1), (0, 12, 1), (0, 17, 1),
-	(1, 1, 1), (1, 6, 1), (1, 8, 1), (1, 13, 1), (1, 16, 1),
-	(2, 1, 1), (2, 6, 1), (2, 8, 1), (2, 13, 1), (2, 15, 1),
-	(3, 1, 1), (3, 6, 1), (3, 8, 1), (3, 13, 1), (3, 16, 1),
-	(4, 1, 1), (4, 6, 1), (4, 8, 1), (4, 13, 1), (4, 16, 1);
+	(1, 1, 1), (1, 6, 1), (1, 8, 1), (1, 12, 1), (1, 17, 1),
+	(2, 1, 1), (2, 6, 1), (2, 8, 1), (2, 13, 1), (2, 16, 1),
+	(3, 1, 1), (3, 6, 1), (3, 8, 1), (3, 13, 1), (3, 15, 1),
+	(4, 1, 1), (4, 6, 1), (4, 8, 1), (4, 13, 1), (4, 16, 1),
+	(5, 1, 1), (5, 6, 1), (5, 8, 1), (5, 13, 1), (5, 16, 1);
 
 
 --INSERT INTO Autos VALUES
@@ -165,50 +163,50 @@ INSERT INTO Hersteller (Firmenname) VALUES
 
 
 INSERT INTO produzieren VALUES
-	(0, 0, 50.50),
 	(1, 1, 50.50),
-	(2, 0, 60.0),
-	(3, 0, 60.0),
-	(4, 0, 50.50),
+	(1, 2, 50.50),
+	(2, 1, 60.0),
+	(3, 1, 60.0),
+	(4, 1, 50.50),
 	(5, 1, 50.50),
 	(6, 2, 60.0),
 	(7, 3, 60.0),
 	(8, 3, 50.50),
 	(9, 1, 50.50),
-	(10, 0, 60.0),
+	(10, 2, 60.0),
 	(11, 2, 60.0),
-	(12, 0, 50.50),
+	(12, 1, 50.50),
 	(13, 1, 50.50),
-	(14, 0, 60.0),
+	(14, 1, 60.0),
 	(15, 2, 60.0),
-	(16, 0, 60.0),
-	(17, 0, 60.0);
+	(16, 3, 60.0),
+	(17, 3, 60.0);
 
 
 --INSERT INTO bestellt VALUES
 --	;
 
 
-INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES
+INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum) VALUES
 -- ( TeileID, TeiletypID, lagert_in, date, AID)
-	(0, '2013-01-12', NULL),
-	(1, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(2, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(2, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(4, '2013-01-12', NULL),
-	(4, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(5, '2013-01-12', NULL),
-	(5, '2013-01-12', NULL),
-	(0, '2013-01-12', NULL),
-	(1, '2013-01-12', NULL);
+	(1, 1, '2013-01-12'),
+	(2, 2, '2013-01-12'),
+	(3, 1, '2013-01-12'),
+	(4, 3, '2013-01-12'),
+	(5, 1, '2013-01-12'),
+	(6, 1, '2013-01-12'),
+	(5, 1, '2013-01-12'),
+	(7, 1, '2013-01-12'),
+	(1, 3, '2013-01-12'),
+	(2, 1, '2013-01-12'),
+	(8, 1, '2013-01-12'),
+	(1, 5, '2013-01-12'),
+	(9, 5, '2013-01-12'),
+	(1, 1, '2013-01-12'),
+	(1, 6, '2013-01-12'),
+	(2, 6, '2013-01-12'),
+	(1, 1, '2013-01-12'),
+	(12, 2, '2013-01-12');
 
 	
 INSERT INTO Motoren VALUES
@@ -225,25 +223,25 @@ INSERT INTO Karosserien VALUES
 
 
 INSERT INTO Türen VALUES
-	(0, 'Rot', 'FLÜGELTÜR'),
-	(1, 'Blau', 'FLÜGELTÜR'),
-	(2, 'Grün', 'FLÜGELTÜR'),
-	(3, 'Blau', 'NORMAL'),
-	(4, 'Rot', 'NORMAL'),
-	(5, 'Grün', 'NORMAL');
+	(1, 'Rot', 'FLÜGELTÜR'),
+	(2, 'Blau', 'FLÜGELTÜR'),
+	(3, 'Grün', 'FLÜGELTÜR'),
+	(4, 'Blau', 'NORMAL'),
+	(5, 'Rot', 'NORMAL'),
+	(6, 'Grün', 'NORMAL');
 
 
 INSERT INTO Fenster VALUES
-	(6, 'Blau', 'Sicherheitsglas'),
-	(7, 'klar', 'Saphirglas');
+	(7, 'Blau', 'Sicherheitsglas'),
+	(8, 'klar', 'Saphirglas');
 
 
 INSERT INTO Reifen VALUES
-	(12, 'Blau', 17, 'Chrom'),
-	(13, 'Grün', 18, 'Stahl'),
-	(14, 'Schwarz', 20, 'Aluminium');
+	(13, 'Blau', 17, 'Chrom'),
+	(14, 'Grün', 18, 'Stahl'),
+	(15, 'Schwarz', 20, 'Aluminium');
 
 
-INSERT INTO Aufträge VALUES
--- (AID, Preis, VorDate, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
-	(0, 39998, '2015-06-06', 0, 2, '2014-08-09', 1, 3);
+INSERT INTO Aufträge (Preis, Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES
+-- (Preis, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
+	(39998 , 1, 2, 1, 3);

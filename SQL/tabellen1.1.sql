@@ -9,7 +9,6 @@
 	TelNr bigint NOT NULL,
 	
 	CONSTRAINT personenPK PRIMARY KEY (PID),
-	--PLZ die mit 00 beginnen sind definitiv ungültig.
 
 	CONSTRAINT validEmail CHECK (Email LIKE '%_@__%.__%'),
 	-- PLZ muss fünfstellig sein.
@@ -161,7 +160,7 @@ CREATE TABLE Aufträge (
 	Vorraussichtliches_Lieferdatum date,
 	Modell_ID integer NOT NULL,
 	Anzahl integer NOT NULL,
-	Datum date NOT NULL,
+	Datum date DEFAULT now(),
 	KundenID integer NOT NULL,
 	MitarbeiterID integer NOT NULL,
 	
