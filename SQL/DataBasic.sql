@@ -1,5 +1,5 @@
 ﻿--PLZ die mit 00 beginnen sind definitiv ungültig.
-INSERT INTO Personen VALUES 
+INSERT INTO Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES 
 	('Peter', 'Müller', '66740', 'Hauptstr.1', 'Saarlouis', 'Peter.Müller@web.de', 0683100000),
 	('Hans Adolf', 'Bibelroy', '11111', 'Einsstr. 11', 'Einsstadt', 'Hans_Adolf@somepage.com', 11111111111),
 	('Sandra', 'Schmidt', '12487', 'Abram-Joffe-Straße 3', 'Berlin', 'S.Schmidt@joadkhgfa89.to', 017200011100),
@@ -22,7 +22,7 @@ INSERT INTO Personen VALUES
 --INVALIDSAMPLEDATA1.sql macht hier weiter mit ID 19
 
 
-INSERT INTO Werke VALUES
+INSERT INTO Werke (Name) VALUES
 	('Hauptwerk'),
 	('Werk Zwickau'),
 	('Heinemann Werk'),
@@ -76,7 +76,7 @@ INSERT INTO Autolagerarbeiter VALUES
 	(15), (16);
 
 
-INSERT INTO Großhändler VALUES
+INSERT INTO Großhändler (Firmenname, Straße, PLZ, Ort, Rabatt) VALUES
 	('Expensive Cars','Geschäftstr. 3', '12345', 'Counttown', 5),
 	('Cheap Cars', 'Randstraße 9', '12345', 'Counttown', 25),
 	('Lensen und Partner GmbH', 'Hauptstraße 1', '66551', 'Saarhausen', 0),
@@ -84,7 +84,7 @@ INSERT INTO Großhändler VALUES
 	('Kadetten und Twingos GmbH', 'Rue de Kartoffel 17', '44251', 'Köpfern', 0);
 
 
-INSERT INTO Modelle VALUES
+INSERT INTO Modelle (Preis, Bezeichnung) VALUES
 	(19999, 'Prototyp'),
 	(11000, 'Billiger Prototyp'),
 	(12000.99, 'Happy Hippo Car - Der Verkaufsschlager'),
@@ -112,7 +112,7 @@ INSERT INTO Kontaktpersonen VALUES
 	--(1, 0, 'WARTEND');
 
 
-INSERT INTO Autoteiltypen VALUES
+INSERT INTO Autoteiltypen (maxPreis, Bezeichnung) VALUES
 	(100, 'Flügeltür Rot'),
 	(100, 'Flügeltür Blau'),
 	(200, 'Flügeltür Grün'),
@@ -146,7 +146,7 @@ INSERT INTO Modellteile VALUES
 --	;
 
 
-INSERT INTO LKWs VALUES
+INSERT INTO LKWs (Kaufdatum) VALUES
 	('2010-01-10'),
 	('2011-02-01'),
 	('2010-02-01'),
@@ -157,7 +157,7 @@ INSERT INTO LKWs VALUES
 --INSERT INTO liefert VALUES
 --	;
 
-INSERT INTO Hersteller VALUES
+INSERT INTO Hersteller (Firmenname) VALUES
 	('Teilezurichter - Profis und Azubis'),
 	('Katalysatoren 4 Life'),
 	('Teile gegen Bares'),

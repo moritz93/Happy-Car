@@ -255,7 +255,7 @@ CREATE TABLE liefert (
 
 CREATE TABLE Hersteller (
 	HID serial,
-	Firmennamen varchar NOT NULL,
+	Firmenname varchar NOT NULL,
 
 	CONSTRAINT herstellerPK PRIMARY KEY (HID)
 );
