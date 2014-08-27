@@ -101,7 +101,7 @@ CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS
 		FETCH FIRST 1 ROWS ONLY
 		);			
 	END; $$ LANGUAGE plpgsql;
-		
+
 
 -- on insert Werksaufträge
 CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
@@ -110,7 +110,6 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 		missing boolean;
 		neededParts integer;
 		part integer;
-
 		
 		-- debug print
 		countNeeded integer;
@@ -193,7 +192,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$ LANGUAGE plpgsql;
 
 
-
+-- returns the estimated delivery time for a given distance
 CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$
 	BEGIN
@@ -203,20 +202,20 @@ CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$ LANGUAGE plpgsql;
 
 
--- TODO check if ordered cars are already produced
+-- checks if ordered cars are already produced
 -- Param (Modell_ID, Anzahl)
 CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$
 	DECLARE 
 	counting integer;
 	BEGIN
-	counting = (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND');
-	RETURN counting>=$2;
+	counting = (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status = 'LAGERND');
+	RETURN counting >= $2;
 	END;
 	$$ LANGUAGE plpgsql;
 
 
--- TODO check if a LKW is available - returns LKW_ID or null
+-- checks if a LKW is available - returns LKW_ID or null
 -- Param ()
 CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$
@@ -231,6 +230,8 @@ CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	END;
 	$$ LANGUAGE plpgsql;
 
+
+-- checks if a driver is available - returns PID or null
 CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	$$
 	BEGIN
@@ -259,21 +260,25 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	werk integer;
 	minwerktime interval;
 	minwerkid integer;
+	
 	BEGIN
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
-	driver :=checkDriverAvailable();
-	lkw:=checkLkwAvailable();
-	distance:=(SELECT Distanz FROM Kunden WHERE PID=(SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
-	counter:=(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+	driver := checkDriverAvailable();
+	lkw := checkLkwAvailable();
+	distance := (SELECT Distanz FROM Kunden WHERE PID = (SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
+	counter := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+	
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
 		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+getTimeForDistance(distance) WHERE AID=NEW.AID;
-		IF (lkw IS NULL OR driver IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
-			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID=NEW.Modell_ID AND KFZ_ID IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID);
+		IF (lkw IS NULL OR driver IS NULL) THEN
+			--NEIN, dann Lagere Autos vorübergehend
+			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID = NEW.Modell_ID AND KFZ_ID IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID);
 		ELSE --JA, dann liefere sofort.
-			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID AND Status='LAGERND')
+			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID = NEW.Modell_ID AND Status = 'LAGERND')
 			LOOP
-			EXIT WHEN counter=0;	
+			EXIT WHEN counter = 0;
+				-- TODO Lieferdatm = now()?? nicht null?
 				INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, cars, NEW.Modell_ID, driver, NEW.AID, now());
 				counter=counter-1;
 			END LOOP;
