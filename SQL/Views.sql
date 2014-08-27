@@ -113,7 +113,32 @@ UPDATE Autos SET Status = 'ARCHIVIERT' WHERE Autos.KFZ_ID = OLD.Fahrgestellnumme
 
 
 
+-- Personalmanagement wird über folgende Sichten realisiert:
+
+-- Personal liefert einen Überblick über alle im Unternehmen beschäftigten Mitarbeiter, aber gestattet kein Einfügen eines neuen Mitarbeiters,
+-- da alle Mitarbeiter über eine Spezialisierung verfügen müssen
+CREATE OR REPLACE VIEW Personal AS
+	SELECT PID AS Mitarbeiter_ID, Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr, Beschäftigungsbeginn, Gehalt, NULL AS Spezialisierung
+	FROM Personen JOIN Mitarbeiter ON Personen.PID = Mitarbeiter.PID;
+
+CREATE OR REPLACE RULE selectAutolager AS ON SELECT TO Personal AS SELECT Mitarbeiter_ID, Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr, Beschäftigungsbeginn, Gehalt, CASE WHEN  FROM (Personen JOIN Mitarbeiter ON Personen.PID=Mitarbeiter.MID)
+	
+
+CREATE OR REPLACE RULE employeeCommandI AS ON INSERT TO Personal
+DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE employeeCommandU AS ON UPDATE TO Personal
+DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE employeeCommand
 
 
 -- Personalmanagement -> Sicht die alle Spezialisierungen konsolidiert
 -- Für jedes Archiv eine View -> bestellungen
+-- Sicht für ingenierue machen, die neue teile einfügen können
+-- Sicht für Verwaltungsangestellte
+
+
+-- Sicht auf alle sich in Produktion befindender Aufträge bzw. solcher die in den Werken momentan assembliert werden
+CREATE OR REPLACE VIEW Produktion AS
+	SELECT WID, AID, Status FROM Werksaufträge GROUP BY WID HAVING Status = 'IN_BEARBEITUNG';
+
+-- TODO: bei rules auf timestamps achten
