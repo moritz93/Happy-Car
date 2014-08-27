@@ -308,7 +308,7 @@ CREATE TABLE Autoteile (
 	AID integer DEFAULT NULL,
 	
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
-	FOREIGN KEY (lagert_in) REFERENCES Teilelager,
+	FOREIGN KEY (lagert_in) REFERENCES Werke,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
 	
 	CONSTRAINT autoteilePK PRIMARY KEY (TeileID)
