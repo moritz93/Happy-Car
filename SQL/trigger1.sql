@@ -73,6 +73,8 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 		INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES (OLD.TeiletypID, OLD.WID, now(), OLD.AID);
 		UPDATE bestellt SET Eingangsdatum=CURRENT_DATE WHERE BID=OLD.BID;
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+		IF(NEW.AID IS NULL) THEN 
+			FOR 
 		available:=(NOT EXISTS (SELECT 1 FROM 
 			-- Wähle Autoteile, die diesem Auftrag zugeordnet sind
 			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = OLD.WID AND AID=OLD.AID GROUP BY TeiletypID) AS tmp1
@@ -361,5 +363,10 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 	BEGIN
 	SELECT AID FROM Werksaufträge WHERE WID=NEW.lagert_in GROUP BY WID HAVING Status='ARCHIVIERT';
 	END; $$ LANGUAGE plpgsql;
+
+CREATE FUNCTION checkAvailableWork(integer) RETURNS TRIGGER AS
+	$$
+	BEGIN
+	IF(
 
 

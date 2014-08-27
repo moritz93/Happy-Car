@@ -17,7 +17,7 @@
 	(
 	SELECT *
 	FROM    (	
-		SELECT Aufträge.AID
+		SELECT Aufträge.AID, KundenID, Vorraussichtliches_Lieferdatum
 		FROM Aufträge
 		JOIN Kunden
 		ON Aufträge.KundenID = Kunden.PID
@@ -28,4 +28,4 @@
 
 	)
 	
-	SELECT AID AS "Auftragsnr." FROM offeneAufträge;
+	SELECT AID AS "Auftragsnr.", vorraussichtliches_lieferdatum AS "Vorrauss. Lieferung" , Vorname AS "Kundenvorname", Nachname AS "Kundenname", TelNr AS "Tel." FROM offeneAufträge;
