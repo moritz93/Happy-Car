@@ -1,19 +1,14 @@
 ﻿-- Index Autos
--- TODO
-CREATE INDEX IDX_Autos ON Autos (KFZ_ID, Status);
+CREATE INDEX IDX_Autos ON Autos (KFZ_ID, Status) WHERE Status = 'ARCHIVIERT';
 
 -- Index Aufträge
--- TODO
-CREATE INDEX IDX_Aufträge ON Aufträge (AID, Status);
+CREATE INDEX IDX_Aufträge ON Aufträge (AID, Status) WHERE Datum IS NOT NULL;
 
 -- Index Werksaufträge
--- TODO
-CREATE INDEX IDX_Werksaufträge ON Werksaufträge (WID, AID, Status);
+CREATE INDEX IDX_Werksaufträge ON Werksaufträge (WID, AID, Status) WHERE Status = 'ARCHIVIERT';
 
 -- Index bestellt
--- TODO
-CREATE INDEX IDX_bestellt ON bestellt (BID, Status);
+CREATE INDEX IDX_bestellt ON bestellt (BID, Status) WHERE Status = 'ARCHIVIERT';
 
 -- Index liefert
--- TODO
-CREATE INDEX IDX_liefert ON liefert (KFZ_ID, MID, AID, Status);
+CREATE INDEX IDX_liefert ON liefert (KFZ_ID, MID, AID, Status) WHERE Lieferdatum IS NOT NULL;

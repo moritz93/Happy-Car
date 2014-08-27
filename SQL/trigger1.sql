@@ -43,9 +43,10 @@ CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
 		UPDATE Autos SET Status='LIEFERND' WHERE kfz_id=NEW.kfz_id AND modell_id=NEW.modell_id;
 		RETURN NEW;
 	END;$$ LANGUAGE plpgsql;
-
-
+	
 CREATE TRIGGER setOnDelivery AFTER INSERT ON liefert FOR EACH ROW EXECUTE PROCEDURE newDelivery();
+
+
 
 --Delivery finished trigger
 --checked :)
@@ -55,6 +56,8 @@ CREATE FUNCTION finishedDelivery() RETURNS TRIGGER AS
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER setOnDeliveryFinished AFTER DELETE ON liefert FOR EACH ROW EXECUTE PROCEDURE finishedDelivery();
+
+
 
 --car parts arrived
 CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
@@ -84,6 +87,7 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 CREATE TRIGGER setOnCarPartsArrived AFTER UPDATE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
 
 
+
 --on insert Werksaufträge
 CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS 
 	$$ BEGIN
@@ -97,15 +101,15 @@ CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS
 		FETCH FIRST 1 ROWS ONLY
 		);			
 	END; $$ LANGUAGE plpgsql;
-		
 
+
+-- on insert Werksaufträge
 CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
 		missing boolean;
 		neededParts integer;
 		part integer;
-
 		
 		-- debug print
 		countNeeded integer;
@@ -173,7 +177,7 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 
--- get estimated time for car prduction in Days
+-- get estimated time for car production in days
 CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$
 	DECLARE
@@ -185,34 +189,39 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	expectedTime=0;
 	FOR aid IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
+		-- TODO liefer ist nicht korrekt?!
 		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge);
-		expectedTime=expectedTime+(liefer-CURRENT_DATE);
+		expectedTime = expectedTime + (liefer - CURRENT_DATE);
 	END LOOP;
 	RETURN expectedTime * interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
 
+
+-- returns the estimated delivery time for a given distance
 CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$
 	BEGIN
+	-- 50km/h
 	RETURN CEIL(($1/50)/24)*interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
 
--- TODO check if ordered cars are already produced
+
+-- checks if ordered cars are already produced
 -- Param (Modell_ID, Anzahl)
 CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$
 	DECLARE 
 	counting integer;
 	BEGIN
-	counting=(SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status='LAGERND');
-	RETURN counting>=$2;
+	counting = (SELECT count(*) AS Anzahl FROM Autos WHERE Modell_ID = $1 AND Status = 'LAGERND');
+	RETURN counting >= $2;
 	END;
 	$$ LANGUAGE plpgsql;
 
 
--- TODO check if a LKW is available - returns LKW_ID or null
+-- checks if a LKW is available - returns LKW_ID or null
 -- Param ()
 CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$
@@ -227,6 +236,8 @@ CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	END;
 	$$ LANGUAGE plpgsql;
 
+
+-- checks if a driver is available - returns PID or null
 CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	$$
 	BEGIN
@@ -238,6 +249,8 @@ CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	);
 	END;
 	$$ LANGUAGE plpgsql;
+
+
 
 -- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
 -- TODO Modell_ID bei liefert sinnvoll ?!
@@ -253,24 +266,28 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	werk integer;
 	minwerktime interval;
 	minwerkid integer;
+	
 	BEGIN
 	minwerkid:=(SELECT WID FROM Werksaufträge LIMIT 1);
 	IF(minwerkid IS NULL) THEN minwerkid:=(SELECT WID FROM Werke LIMIT 1); END IF;
 	minwerktime:=getWerksauslastung(minwerkid); 
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
-	driver :=checkDriverAvailable();
-	lkw:=checkLkwAvailable();
-	distance:=(SELECT Distanz FROM Kunden WHERE PID=(SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
-	counter:=(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+	driver := checkDriverAvailable();
+	lkw := checkLkwAvailable();
+	distance := (SELECT Distanz FROM Kunden WHERE PID = (SELECT KundenID FROM Aufträge WHERE AID=NEW.AID));
+	counter := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
+	
 	-- Autos sind schon im Autolager
 	IF orderInStock THEN
 		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+getTimeForDistance(distance) WHERE AID=NEW.AID;
-		IF (lkw IS NULL OR driver IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
-			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID=NEW.Modell_ID AND KFZ_ID IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID);
+		IF (lkw IS NULL OR driver IS NULL) THEN
+			--NEIN, dann Lagere Autos vorübergehend
+			UPDATE Autos SET Status='WARTEND' WHERE Modell_ID = NEW.Modell_ID AND KFZ_ID IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID);
 		ELSE --JA, dann liefere sofort.
-			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID=NEW.Modell_ID AND Status='LAGERND')
+			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID = NEW.Modell_ID AND Status = 'LAGERND')
 			LOOP
-			EXIT WHEN counter=0;	
+			EXIT WHEN counter = 0;
+				-- TODO Lieferdatm = now()?? nicht null?
 				INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, cars, NEW.Modell_ID, driver, NEW.AID, now());
 				counter=counter-1;
 			END LOOP;
@@ -292,6 +309,8 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$ LANGUAGE plpgsql;
 	
 CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE insertInOrders();
+
+
 
 --Bei Einchecken eines fertigen Auftrags, Einfügen der Autos
 CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
