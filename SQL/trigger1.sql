@@ -109,43 +109,49 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 		
 		-- debug print
 		countNeeded integer;
+		debug RECORD;
 		
 	BEGIN		
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
-		missing:=EXISTS (SELECT * FROM 
+		RAISE NOTICE 'NEW.WID=%, countNeeded=%, NEW.AID=%', NEW.WID, countNeeded, NEW.AID;
+		--missing:=(EXISTS 
+		debug:=(SELECT 1 FROM 
 			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
 			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = NEW.WID AND AID IS NULL GROUP BY TeiletypID) AS tmp1
-			 NATURAL JOIN
+			 RIGHT OUTER JOIN
 			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
-			(SELECT TeiletypID, Anzahl * countNeeded AS countNeed FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2)
-		WHERE countNeed>count) AS missingParts;
+			(SELECT TeiletypID, Anzahl * countNeeded AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2
+			ON tmp1.TeiletypID=tmp2.TeiletypID)
+			WHERE teileNeeded>count OR count IS NULL LIMIT 1);
+		RAISE NOTICE 'The returned Record is %', debug;
+		missing:=false;
 		
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
-			-- RAISE NOTICE 'Parts missing: %', missing;
+			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
-				--RAISE NOTICE 'TeiletypId: %', part;
+				RAISE NOTICE 'TeiletypId: %', part;
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts := (SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID = part);
 
 				IF(neededParts > 0) THEN
-					--RAISE NOTICE 'neededParts_missing: %', neededParts;
+					RAISE NOTICE 'neededParts_missing: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NEW.AID);
 				END IF;
 			END LOOP;
 		ELSE --JA
-			--RAISE NOTICE 'Parts missing: %', missing;
+			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts:=(SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID=part);
 				IF(neededParts > 0) THEN
-				--RAISE NOTICE 'neededParts_in_stock: %', neededParts;
+				RAISE NOTICE 'neededParts_in_stock: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NULL);
@@ -177,7 +183,7 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 		
 	BEGIN
 	expectedTime=0;
-	FOR aid IN (SELECT AID FROM Werksaufträge WHERE WID=$1)
+	FOR aid IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
 		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge);
 		expectedTime=expectedTime+(liefer-CURRENT_DATE);
@@ -248,6 +254,9 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	minwerktime interval;
 	minwerkid integer;
 	BEGIN
+	minwerkid:=(SELECT WID FROM Werksaufträge LIMIT 1);
+	IF(minwerkid IS NULL) THEN minwerkid:=(SELECT WID FROM Werke LIMIT 1); END IF;
+	minwerktime:=getWerksauslastung(minwerkid); 
 	orderInStock := checkCarStock(NEW.Modell_ID, NEW.Anzahl);
 	driver :=checkDriverAvailable();
 	lkw:=checkLkwAvailable();
