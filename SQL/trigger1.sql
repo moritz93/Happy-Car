@@ -189,8 +189,8 @@ CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	expectedTime=0;
 	FOR aid IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
-		-- TODO liefer ist nicht korrekt?!
-		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge);
+
+		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge WHERE AID=aid);
 		expectedTime = expectedTime + (liefer - CURRENT_DATE);
 	END LOOP;
 	RETURN expectedTime * interval '1 days';
@@ -287,8 +287,7 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 			FOR cars IN (SELECT KFZ_ID FROM Autos WHERE Modell_ID = NEW.Modell_ID AND Status = 'LAGERND')
 			LOOP
 			EXIT WHEN counter = 0;
-				-- TODO Lieferdatm = now()?? nicht null?
-				INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, cars, NEW.Modell_ID, driver, NEW.AID, now());
+				INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, cars, NEW.Modell_ID, driver, NEW.AID, NULL);
 				counter=counter-1;
 			END LOOP;
 		END IF;
