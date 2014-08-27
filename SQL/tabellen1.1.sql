@@ -164,7 +164,9 @@ CREATE TABLE Aufträge (
 	Datum date NOT NULL,
 	KundenID integer NOT NULL,
 	MitarbeiterID integer NOT NULL,
-	
+	Lieferdatum date DEFAULT NULL,
+		
+
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
 	FOREIGN KEY (KundenID) REFERENCES Kunden,
 	FOREIGN KEY (MitarbeiterID) REFERENCES Verwaltungsangestellte,
@@ -182,6 +184,9 @@ CREATE TABLE Werksaufträge (
 	WID integer,
 	AID integer,
 	Status Auftragsstatus DEFAULT 'WARTEND',
+	Herstellungsbeginn date DEFAULT now(),
+	Herstellungsende date DEFAULT NULL,
+	
 	
 	FOREIGN KEY (WID) REFERENCES Werke,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
@@ -282,7 +287,8 @@ CREATE TABLE bestellt (
 	WID integer,
 	TeiletypID integer,
 	Anzahl integer,
-	Bestelldatum date,
+	Bestelldatum date DEFAULT now(),
+	Eingangsdatum date DEFAULT NULL,
 	AID integer,
 	Status Bestellungsstatus DEFAULT 'BESTELLT', 
 	
