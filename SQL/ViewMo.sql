@@ -15,11 +15,17 @@
  CREATE OR REPLACE VIEW offene_Aufträge AS
 	WITH offeneAufträge AS
 	(
+	SELECT *
+	FROM    (	
 		SELECT Aufträge.AID
 		FROM Aufträge
-		JOIN liefert
-		ON Aufträge.AID = liefert.AID
-		WHERE liefert.Lieferdatum IS NULL
+		JOIN Kunden
+		ON Aufträge.KundenID = Kunden.PID
+		WHERE Aufträge.status = 'WARTEND'
+		) AS auftragT
+	JOIN Personen
+	ON auftragT.KundenID = Personen.PID
 
 	)
+	
 	SELECT AID AS "Auftragsnr." FROM offeneAufträge;

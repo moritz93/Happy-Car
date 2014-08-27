@@ -152,6 +152,8 @@ CREATE TABLE Kontaktpersonen (
 	CONSTRAINT kontaktpersonenPK PRIMARY KEY (PID)
 );
 
+CREATE DOMAIN Auftragsstatus AS varchar(14)
+	CHECK (VALUE ~ 'WARTEND' OR VALUE~'IN_BEARBEITUNG' OR VALUE~'ARCHIVIERT');
 
 -- Datum = null entspricht noch nicht abgeschlossen.
 CREATE TABLE Aufträge (
@@ -163,6 +165,7 @@ CREATE TABLE Aufträge (
 	Datum date DEFAULT now(),
 	KundenID integer NOT NULL,
 	MitarbeiterID integer NOT NULL,
+	Status Auftragsstatus DEFAULT 'WARTEND',
 	
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
 	FOREIGN KEY (KundenID) REFERENCES Kunden,
@@ -174,8 +177,7 @@ CREATE TABLE Aufträge (
 );
 
 
-CREATE DOMAIN Auftragsstatus AS varchar(14)
-	CHECK (VALUE ~ 'WARTEND' OR VALUE~'IN_BEARBEITUNG' OR VALUE~'ARCHIVIERT');
+
 
 CREATE TABLE Werksaufträge (
 	WID integer,

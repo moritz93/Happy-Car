@@ -318,6 +318,9 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	werk integer;	
 	kfzid integer;
 	BEGIN
+	IF(OLD.Status!='IN_BEARBEITUNG' AND NEW.status='IN_BEARBEITUNG')THEN
+		UPDATE Aufträge SET Status = IN_BEARBEITUNG WHERE NEW.Aid = Aufträge.AID;
+	END IF;
 	--Es wird nur etwas getan, falls die Änderung auch von bel Status zu AUSGEFÜHRT war
 	IF (OLD.Status='AUSGEFÜHRT' OR NEW.Status!='AUSGEFÜHRT') THEN 
 		RETURN NULL;
