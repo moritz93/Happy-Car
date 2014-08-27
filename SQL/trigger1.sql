@@ -53,6 +53,7 @@ CREATE TRIGGER setOnDelivery AFTER INSERT ON liefert FOR EACH ROW EXECUTE PROCED
 CREATE FUNCTION finishedDelivery() RETURNS TRIGGER AS
 	$$ BEGIN
 		UPDATE Autos SET Status='ARCHIVIERT' WHERE kfz_id=OLD.kfz_id AND modell_id=OLD.modell_id;
+		UPDATE liefert SET Lieferdatum=CURRENT_DATE WHERE KFZ_ID=OLD.KFZ_ID AND MID=OLD.MID AND AID=OLD.AID;
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER setOnDeliveryFinished AFTER DELETE ON liefert FOR EACH ROW EXECUTE PROCEDURE finishedDelivery();
@@ -68,8 +69,9 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 		available boolean;
 	BEGIN
 		IF (OLD.Status='ARCHIVIERT' OR NEW.Status!='ARCHIVIERT') THEN RETURN NEW; END IF;
-		SELECT max(TeileID) INTO teilid FROM Autoteile;
-		INSERT INTO Autoteile (TeileId ,TeiletypID, lagert_in, Lieferdatum, AID) VALUES (teilid+1,OLD.TeiletypID, OLD.WID, now(), OLD.AID);
+		--SELECT max(TeileID) INTO teilid FROM Autoteile;
+		INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES (OLD.TeiletypID, OLD.WID, now(), OLD.AID);
+		UPDATE bestellt SET Eingangsdatum=CURRENT_DATE WHERE BID=OLD.BID;
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 		available:=NOT EXISTS (SELECT * FROM 
 			-- Wähle Autoteile, die diesem Auftrag zugeordnet sind 
@@ -80,6 +82,7 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 			WHERE countNeed>count) AS missingParts;
 		IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=OLD.WID) AND available) THEN
 				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=OLD.WID AND AID=OLD.AID;
+				UPDATE Werksaufträge SET Herstellungsbeginn=CURRENT_DATE WHERE WID=OLD.WID AND AID=OLD.AID;
 		END IF;
 		RETURN OLD;
 	END; $$ LANGUAGE plpgsql;
@@ -111,25 +114,19 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 		neededParts integer;
 		part integer;
 		
-		-- debug print
 		countNeeded integer;
-		debug RECORD;
 		
 	BEGIN		
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
 		RAISE NOTICE 'NEW.WID=%, countNeeded=%, NEW.AID=%', NEW.WID, countNeeded, NEW.AID;
-		--missing:=(EXISTS 
-		debug:=(SELECT 1 FROM 
+		missing:=(EXISTS (SELECT 1 FROM 
 			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
 			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = NEW.WID AND AID IS NULL GROUP BY TeiletypID) AS tmp1
 			 RIGHT OUTER JOIN
 			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
-			(SELECT TeiletypID, Anzahl * countNeeded AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID = NEW.AID)) AS tmp2
+			(SELECT TeiletypID, (Anzahl * countNeeded) AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM 				Aufträge WHERE AID = NEW.AID)) AS tmp2
 			ON tmp1.TeiletypID=tmp2.TeiletypID)
-			WHERE teileNeeded>count OR count IS NULL LIMIT 1);
-		RAISE NOTICE 'The returned Record is %', debug;
-		missing:=false;
-		
+			WHERE teileNeeded>count OR count IS NULL LIMIT 1));
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
 			RAISE NOTICE 'Parts missing: %', missing;
@@ -166,6 +163,7 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 			-- Es sind alle Teile da, wird irgendein auftrag gerade aufgeführt? Wenn nein dann führe diesen hier aus.
 			IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=NEW.WID)) THEN
 				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=NEW.WID AND AID=NEW.AID;
+				UPDATE Werksaufträge SET Herstellungsbeginn=CURRENT_DATE WHERE WID=NEW.WID AND AID=NEW.AID;
 			END IF;
 		END IF;	
 		RETURN NEW;
@@ -327,6 +325,7 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	modellid=(SELECT Modell_ID FROM Aufträge WHERE AID=OLD.AID);
 	werk=(SELECT WID FROM Werksauftäge WHERE AID=WID);
 	counter=(SELECT Anzahl FROM Aufträge WHERE AID=OLD.AID);
+	UPDATE Werksaufträge SET Herstellungsende=CURRENT_DATE WHERE WID=OLD.WID AND AID=OLD.AID;
 	--Gibt es einen freien LKW und Fahrer?
 	IF (checkLkwAvailable() IS NULL OR checkDriverAvailable() IS NULL) THEN --NEIN, dann Lagere Autos vorübergehend
 		LOOP
@@ -348,3 +347,5 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER onFinishedJob AFTER UPDATE ON Werksaufträge FOR EACH ROW EXECUTE PROCEDURE finishedJob();
+
+

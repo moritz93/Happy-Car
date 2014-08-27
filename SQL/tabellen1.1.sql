@@ -174,14 +174,17 @@ CREATE TABLE Aufträge (
 	CONSTRAINT validPriceAndCount CHECK(Preis>0 AND Anzahl>0)
 );
 
--- TODO: Was ist hier möglich?
+
 CREATE DOMAIN Auftragsstatus AS varchar(14)
-	CHECK (VALUE ~ 'WARTEND' OR VALUE~'IN_BEARBEITUNG' OR VALUE~'AUSGEFÜHRT');
+	CHECK (VALUE ~ 'WARTEND' OR VALUE~'IN_BEARBEITUNG' OR VALUE~'ARCHIVIERT');
 
 CREATE TABLE Werksaufträge (
 	WID integer,
 	AID integer,
 	Status Auftragsstatus DEFAULT 'WARTEND',
+	Herstellungsbeginn date DEFAULT NULL,
+	Herstellungsende date DEFAULT NULL,
+	
 	
 	FOREIGN KEY (WID) REFERENCES Werke,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
@@ -198,7 +201,7 @@ CREATE TABLE Autoteiltypen (
 	CONSTRAINT validMaxPrice CHECK (maxPreis>0)
 );
 
--- TODO Anzahl in
+
 CREATE TABLE Modellteile (
 	Modell_ID integer,
 	TeiletypID integer,

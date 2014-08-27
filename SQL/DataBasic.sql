@@ -109,9 +109,6 @@ INSERT INTO Kontaktpersonen VALUES
 	(6, 1);
 
 
-INSERT INTO Aufträge VALUES
--- (AID, Preis, VorDate, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
-	(0, 39998, '2015-06-06', 0, 2, '2014-08-09', 1, 3);
 
 
 --INSERT INTO Werksaufträge VALUES
@@ -196,26 +193,26 @@ INSERT INTO produzieren VALUES
 --	;
 
 
-INSERT INTO Autoteile VALUES
+INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES
 -- ( TeileID, TeiletypID, lagert_in, date, AID)
-	(0, 0, 0, '2013-01-12', NULL),
-	(1, 1, 1, '2013-01-12', NULL),
-	(2, 2, 0, '2013-01-12', NULL),
-	(3, 3, 2, '2013-01-12', NULL),
-	(4, 4, 0, '2013-01-12', NULL),
-	(5, 5, 0, '2013-01-12', NULL),
-	(6, 6, 0, '2013-01-12', NULL),
-	(7, 7, 0, '2013-01-12', NULL),
-	(8, 8, 2, '2013-01-12', NULL),
-	(9, 9, 0, '2013-01-12', NULL),
-	(10, 10, 0, '2013-01-12', NULL),
-	(11, 11, 4, '2013-01-12', NULL),
-	(12, 12, 4, '2013-01-12', NULL),
-	(13, 13, 0, '2013-01-12', NULL),
-	(14, 14, 5, '2013-01-12', NULL),
-	(15, 15, 5, '2013-01-12', NULL),
-	(16, 16, 0, '2013-01-12', NULL),
-	(17, 17, 1, '2013-01-12', NULL);
+	(0, 0, '2013-01-12', NULL),
+	(1, 1, '2013-01-12', NULL),
+	(2, 0, '2013-01-12', NULL),
+	(3, 2, '2013-01-12', NULL),
+	(4, 0, '2013-01-12', NULL),
+	(5, 0, '2013-01-12', NULL),
+	(6, 0, '2013-01-12', NULL),
+	(7, 0, '2013-01-12', NULL),
+	(8, 2, '2013-01-12', NULL),
+	(9, 0, '2013-01-12', NULL),
+	(10, 0, '2013-01-12', NULL),
+	(11, 4, '2013-01-12', NULL),
+	(12, 4, '2013-01-12', NULL),
+	(13, 0, '2013-01-12', NULL),
+	(14, 5, '2013-01-12', NULL),
+	(15, 5, '2013-01-12', NULL),
+	(16, 0, '2013-01-12', NULL),
+	(17, 1, '2013-01-12', NULL);
 
 	
 INSERT INTO Motoren VALUES
@@ -249,3 +246,8 @@ INSERT INTO Reifen VALUES
 	(12, 'Blau', 17, 'Chrom'),
 	(13, 'Grün', 18, 'Stahl'),
 	(14, 'Schwarz', 20, 'Aluminium');
+
+
+INSERT INTO Aufträge VALUES
+-- (AID, Preis, VorDate, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
+	(0, 39998, '2015-06-06', 0, 2, '2014-08-09', 1, 3);
