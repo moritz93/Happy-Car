@@ -1,38 +1,34 @@
 ﻿--PLZ die mit 00 beginnen sind definitiv ungültig.
 INSERT INTO Personen VALUES 
-	(0, 'Peter', 'Müller', '66740', 'Hauptstr.1', 'Saarlouis', 'Peter.Müller@web.de', 0683100000),
-	(1, 'Hans Adolf', 'Bibelroy', '11111', 'Einsstr. 11', 'Einsstadt', 'Hans_Adolf@somepage.com', 11111111111),
-	(2, 'Sandra', 'Schmidt', '12487', 'Abram-Joffe-Straße 3', 'Berlin', 'S.Schmidt@joadkhgfa89.to', 017200011100),
-	(3, 'Hermann', 'Buchmann', '01222', 'Straße 42', 'Stadt', 'buchmann@verwaltung.de', 028409374),
-	(4, 'Gus', 'Thomer', '73733', 'Einkaufsstr. 55', 'Schopstadt', 'Gus@thomer.de', 065115635),
-	(5, 'Petra', 'Müller', '66740', 'Hauptstr. 1', 'Saarlouis', 'Petra.Müller@web.de', 0683100000),
-	(6, 'Hildegard', 'Bibelroy', '11111', 'Einsstr.11', 'Einsstadt', 'HildegardB@somepage.com', 11111111111),
-	(7, 'Yildiz', 'Tilbe', '12487', 'Hauptstr. 200', 'Berlin', 'YildizTilbe@ghioapi.de', 017200011100),
-	(8, 'Hermann', 'Buchmannklon', '01222', 'Straße 43', 'Stadt', 'buchmannklon@verwaltung.de', 028409275),
-	(9, 'Alexandra', 'Dünsch', '73732', 'Einkaufsstr. 155', 'Klossstadt', 'Alexandra.dünsch@gmx.net', 049846433),
-	(10, 'Fred', 'Fred', '41564', 'Whasstr. 12', 'Whasstart', 'Fred.Fred@fred.com', 01984354102),
-	(11, 'Friedolin', 'Fred', '41564', 'Whasstr. 12', 'Whasstart', 'Friedolin.Fred@fred.com', 01984354000),
-	(12, 'Freda', 'Fred', '41564', 'Whasstr.12', 'Whasstart', 'Freda.Fred@fred.com', 01984354111),
-	(13, 'Peter', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
-	(14, 'Uwe', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
-	(15, 'Manfred', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
-	(16, 'Peter', 'Schreiner', '54441', 'Kabuffstraße 8', 'Kanara', 'peter@gmx.de', 06581787878),
-	(17, 'Günther', 'Knopfler', '54341', 'Kirschenweg 1', 'Betonia', 'günther69@gmx.de', 065173458568),
-	(18, 'Luise', 'McKidney', '88076', 'Sackgässchen 1', 'Dorflo', 'luise@home.de', 0171443322);
+	('Peter', 'Müller', '66740', 'Hauptstr.1', 'Saarlouis', 'Peter.Müller@web.de', 0683100000),
+	('Hans Adolf', 'Bibelroy', '11111', 'Einsstr. 11', 'Einsstadt', 'Hans_Adolf@somepage.com', 11111111111),
+	('Sandra', 'Schmidt', '12487', 'Abram-Joffe-Straße 3', 'Berlin', 'S.Schmidt@joadkhgfa89.to', 017200011100),
+	('Hermann', 'Buchmann', '01222', 'Straße 42', 'Stadt', 'buchmann@verwaltung.de', 028409374),
+	('Gus', 'Thomer', '73733', 'Einkaufsstr. 55', 'Schopstadt', 'Gus@thomer.de', 065115635),
+	('Petra', 'Müller', '66740', 'Hauptstr. 1', 'Saarlouis', 'Petra.Müller@web.de', 0683100000),
+	('Hildegard', 'Bibelroy', '11111', 'Einsstr.11', 'Einsstadt', 'HildegardB@somepage.com', 11111111111),
+	('Yildiz', 'Tilbe', '12487', 'Hauptstr. 200', 'Berlin', 'YildizTilbe@ghioapi.de', 017200011100),
+	('Hermann', 'Buchmannklon', '01222', 'Straße 43', 'Stadt', 'buchmannklon@verwaltung.de', 028409275),
+	('Alexandra', 'Dünsch', '73732', 'Einkaufsstr. 155', 'Klossstadt', 'Alexandra.dünsch@gmx.net', 049846433),
+	('Fred', 'Fred', '41564', 'Whasstr. 12', 'Whasstart', 'Fred.Fred@fred.com', 01984354102),
+	('Friedolin', 'Fred', '41564', 'Whasstr. 12', 'Whasstart', 'Friedolin.Fred@fred.com', 01984354000),
+	('Freda', 'Fred', '41564', 'Whasstr.12', 'Whasstart', 'Freda.Fred@fred.com', 01984354111),
+	('Peter', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
+	('Uwe', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
+	('Manfred', 'Ludolf', '56307', 'Mittelstr. 2', 'Dernbach', 'PeterLudolf@web.de', 026891259),
+	('Peter', 'Schreiner', '54441', 'Kabuffstraße 8', 'Kanara', 'peter@gmx.de', 06581787878),
+	('Günther', 'Knopfler', '54341', 'Kirschenweg 1', 'Betonia', 'günther69@gmx.de', 065173458568),
+	('Luise', 'McKidney', '88076', 'Sackgässchen 1', 'Dorflo', 'luise@home.de', 0171443322);
 --INVALIDSAMPLEDATA1.sql macht hier weiter mit ID 19
 
 
 INSERT INTO Werke VALUES
-	(0, 'Hauptwerk'),
-	(1, 'Werk Zwickau'),
-	(2, 'Heinemann Werk'),
-	(3, 'Gutes Werken am See'),
-	(4, 'Outsourcing Elements'),
-	(5, 'Güllen Werke GmbH');
-
-
-INSERT INTO Teilelager VALUES
-	(0), (1), (2), (3), (4), (5);
+	('Hauptwerk'),
+	('Werk Zwickau'),
+	('Heinemann Werk'),
+	('Gutes Werken am See'),
+	('Outsourcing Elements'),
+	('Güllen Werke GmbH');
 
 
 INSERT INTO Mitarbeiter VALUES
@@ -81,19 +77,19 @@ INSERT INTO Autolagerarbeiter VALUES
 
 
 INSERT INTO Großhändler VALUES
-	(0, 'Expensive Cars','Geschäftstr. 3', '12345', 'Counttown', 5),
-	(1, 'Cheap Cars', 'Randstraße 9', '12345', 'Counttown', 25),
-	(2, 'Lensen und Partner GmbH', 'Hauptstraße 1', '66551', 'Saarhausen', 0),
-	(3, 'Autos 4 Life', 'Tortenstraße 4', '66151', 'Goldsilbern', 5),
-	(4, 'Kadetten und Twingos GmbH', 'Rue de Kartoffel 17', '44251', 'Köpfern', 0);
+	('Expensive Cars','Geschäftstr. 3', '12345', 'Counttown', 5),
+	('Cheap Cars', 'Randstraße 9', '12345', 'Counttown', 25),
+	('Lensen und Partner GmbH', 'Hauptstraße 1', '66551', 'Saarhausen', 0),
+	('Autos 4 Life', 'Tortenstraße 4', '66151', 'Goldsilbern', 5),
+	('Kadetten und Twingos GmbH', 'Rue de Kartoffel 17', '44251', 'Köpfern', 0);
 
 
 INSERT INTO Modelle VALUES
-	(0, 19999, 'Prototyp'),
-	(1, 11000, 'Billiger Prototyp'),
-	(2, 12000.99, 'Happy Hippo Car - Der Verkaufsschlager'),
-	(3, 13999, 'Twilight 500'),
-	(4, 9999.99, 'Karre');
+	(19999, 'Prototyp'),
+	(11000, 'Billiger Prototyp'),
+	(12000.99, 'Happy Hippo Car - Der Verkaufsschlager'),
+	(13999, 'Twilight 500'),
+	(9999.99, 'Karre');
 
 
 INSERT INTO Kunden VALUES
@@ -117,24 +113,24 @@ INSERT INTO Kontaktpersonen VALUES
 
 
 INSERT INTO Autoteiltypen VALUES
-	(0, 100, 'Flügeltür Rot'),
-	(1, 100, 'Flügeltür Blau'),
-	(2, 200, 'Flügeltür Grün'),
-	(3, 100, 'Tür Blau'),
-	(4, 100, 'Tür Rot'),
-	(5, 100, 'Tür Grün'),
-	(6, 50, 'Fenster Tönung Blau'),
-	(7, 50, 'Fenster ohne Tönung'),
-	(8, 500, 'Karosserie Blau'),
-	(9, 600, 'Karosserie Grün'),
-	(10, 600, 'Karosserie Gelb'),
-	(11, 600, 'Karosserie Rot'),
-	(12, 100, 'Reifen klein'),
-	(13, 100, 'Reifen mittel'),
-	(14, 100, 'Reifen groß'),
-	(15, 2000, 'Motor schwach'),
-	(16, 3000, 'Motor gut'),
-	(17, 4000, 'Motor sportlich');
+	(100, 'Flügeltür Rot'),
+	(100, 'Flügeltür Blau'),
+	(200, 'Flügeltür Grün'),
+	(100, 'Tür Blau'),
+	(100, 'Tür Rot'),
+	(100, 'Tür Grün'),
+	(50, 'Fenster Tönung Blau'),
+	(50, 'Fenster ohne Tönung'),
+	(500, 'Karosserie Blau'),
+	(600, 'Karosserie Grün'),
+	(600, 'Karosserie Gelb'),
+	(600, 'Karosserie Rot'),
+	(100, 'Reifen klein'),
+	(100, 'Reifen mittel'),
+	(100, 'Reifen groß'),
+	(2000, 'Motor schwach'),
+	(3000, 'Motor gut'),
+	(4000, 'Motor sportlich');
 
 
 INSERT INTO Modellteile VALUES
@@ -151,21 +147,21 @@ INSERT INTO Modellteile VALUES
 
 
 INSERT INTO LKWs VALUES
-	(0, '2010-01-10'),
-	(1, '2011-02-01'),
-	(2, '2010-02-01'),
-	(3, '2011-04-01'),
-	(4, '2014-02-01');
+	('2010-01-10'),
+	('2011-02-01'),
+	('2010-02-01'),
+	('2011-04-01'),
+	('2014-02-01');
 
 
 --INSERT INTO liefert VALUES
 --	;
 
 INSERT INTO Hersteller VALUES
-	(0, 'Teilezurichter - Profis und Azubis'),
-	(1, 'Katalysatoren 4 Life'),
-	(2, 'Teile gegen Bares'),
-	(3, 'Items, Gadgets and more');
+	('Teilezurichter - Profis und Azubis'),
+	('Katalysatoren 4 Life'),
+	('Teile gegen Bares'),
+	('Items, Gadgets and more');
 
 
 INSERT INTO produzieren VALUES
@@ -195,24 +191,24 @@ INSERT INTO produzieren VALUES
 
 INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES
 -- ( TeileID, TeiletypID, lagert_in, date, AID)
-	(0, 0, '2013-01-12', NULL),
-	(1, 1, '2013-01-12', NULL),
-	(2, 0, '2013-01-12', NULL),
-	(3, 2, '2013-01-12', NULL),
-	(4, 0, '2013-01-12', NULL),
-	(5, 0, '2013-01-12', NULL),
-	(6, 0, '2013-01-12', NULL),
-	(7, 0, '2013-01-12', NULL),
-	(8, 2, '2013-01-12', NULL),
-	(9, 0, '2013-01-12', NULL),
-	(10, 0, '2013-01-12', NULL),
-	(11, 4, '2013-01-12', NULL),
-	(12, 4, '2013-01-12', NULL),
-	(13, 0, '2013-01-12', NULL),
-	(14, 5, '2013-01-12', NULL),
-	(15, 5, '2013-01-12', NULL),
-	(16, 0, '2013-01-12', NULL),
-	(17, 1, '2013-01-12', NULL);
+	(0, '2013-01-12', NULL),
+	(1, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(2, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(2, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(4, '2013-01-12', NULL),
+	(4, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(5, '2013-01-12', NULL),
+	(5, '2013-01-12', NULL),
+	(0, '2013-01-12', NULL),
+	(1, '2013-01-12', NULL);
 
 	
 INSERT INTO Motoren VALUES

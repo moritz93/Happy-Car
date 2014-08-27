@@ -24,16 +24,16 @@ CREATE TABLE Werke (
 	CONSTRAINT werkePK PRIMARY KEY (WID)
 );
 
-CREATE TABLE Teilelager (
-	WID serial,
+--CREATE TABLE Teilelager (
+--	WID serial,
 	
-	FOREIGN KEY (WID) REFERENCES Werke,
+--	FOREIGN KEY (WID) REFERENCES Werke,
 	
-	CONSTRAINT teilelagerPK PRIMARY KEY (WID)
-);
+--	CONSTRAINT teilelagerPK PRIMARY KEY (WID)
+--);
 
 CREATE TABLE Mitarbeiter (
-	PID serial,
+	PID integer,
 	Beschäftigungsbeginn date NOT NULL,
 	Gehalt numeric(10,2) NOT NULL,
 	
@@ -44,7 +44,7 @@ CREATE TABLE Mitarbeiter (
 );
 
 CREATE TABLE Werksarbeiter (
-	PID serial,
+	PID integer,
 	WID integer REFERENCES Werke,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
@@ -54,7 +54,7 @@ CREATE TABLE Werksarbeiter (
 
 
 CREATE TABLE LKW_Fahrer (
-	PID serial,
+	PID integer,
 	Führerscheindatum date NOT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
@@ -64,14 +64,14 @@ CREATE TABLE LKW_Fahrer (
 
 
 CREATE TABLE Verwaltungsangestellte (
-	PID serial,
+	PID integer,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
 
 	CONSTRAINT verwaltungsangestelltePK PRIMARY KEY (PID)
 );
 CREATE TABLE Lagerarbeiter (
-	PID serial,
+	PID integer,
 	
 	FOREIGN KEY (PID) REFERENCES Mitarbeiter,
 
@@ -80,17 +80,17 @@ CREATE TABLE Lagerarbeiter (
 
 
 CREATE TABLE Teilelagerarbeiter (
-	PID serial,
+	PID integer,
 	WID integer NOT NULL,
 	
-	FOREIGN KEY (WID) REFERENCES Teilelager,
+	FOREIGN KEY (WID) REFERENCES Werke,
 	FOREIGN KEY (PID) REFERENCES Lagerarbeiter,
 
 	CONSTRAINT teilelagerarbeiterPK PRIMARY KEY (PID)
 );
 
 CREATE TABLE Autolagerarbeiter (
-	PID serial,
+	PID integer,
 	
 	FOREIGN KEY (PID) REFERENCES Lagerarbeiter,
 
@@ -123,7 +123,7 @@ CREATE TABLE Modelle (
 );
 
 CREATE TABLE Kunden (
-	PID serial,
+	PID integer,
 	Distanz integer NOT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Personen,
@@ -135,7 +135,7 @@ CREATE TABLE Kunden (
 
 
 CREATE TABLE Privatkunden (
-	PID serial,
+	PID integer,
 	
 	FOREIGN KEY (PID) REFERENCES Kunden,
 
@@ -144,7 +144,7 @@ CREATE TABLE Privatkunden (
 
 
 CREATE TABLE Kontaktpersonen (
-	PID serial,
+	PID integer,
 	GID integer NOT NULL,
 	
 	FOREIGN KEY (GID) REFERENCES Großhändler,
@@ -217,7 +217,7 @@ CREATE DOMAIN Autostatus AS varchar(10) CHECK (VALUE~'LAGERND' OR VALUE~'LIEFERN
 
 
 CREATE TABLE Autos (
-	KFZ_ID integer,
+	KFZ_ID serial,
 	Modell_ID integer,
 	Status Autostatus DEFAULT 'LAGERND',
 	produziertVon integer NOT NULL,
@@ -279,6 +279,7 @@ CREATE TABLE produzieren (
 --Auftragsid als Attribut hinzugefügt
 -- TODO anzahl added -> ER-Modell, Relationales Modell brauch neues Feld Status in {ARCHIVIERT, BESTELLT}
 CREATE DOMAIN Bestellungsstatus AS varchar(10) CHECK (VALUE~'ARCHIVIERT' OR VALUE~'BESTELLT');
+
 CREATE TABLE bestellt (
 	BID SERIAL,
 	HID integer,
@@ -316,7 +317,7 @@ CREATE TABLE Autoteile (
 
 -- Autoteile
 CREATE TABLE Motoren (
-	TeiletypID serial,
+	TeiletypID integer,
 	PS integer NOT NULL,
 	Drehzahl integer NOT NULL,
 	Verbrauch integer NOT NULL,
@@ -330,7 +331,7 @@ CREATE TABLE Motoren (
 );
 
 CREATE TABLE Karosserien (
-	TeiletypID serial,
+	TeiletypID integer,
 	Farbe varchar NOT NULL,
 	Material varchar NOT NULL,
 	Höhe integer NOT NULL,
@@ -347,7 +348,7 @@ CREATE TABLE Karosserien (
 CREATE DOMAIN Türart AS varchar(10) CHECK (VALUE~'FLÜGELTÜR' OR VALUE~'KOFFERRAUM' OR VALUE~'SCHIEBETÜR' OR VALUE~'NORMAL' );
 
 CREATE TABLE Türen (
-	TeiletypID serial,
+	TeiletypID integer,
 	Farbe varchar NOT NULL,
 	Türart varchar,
 	
@@ -357,7 +358,7 @@ CREATE TABLE Türen (
 );
 
 CREATE TABLE Fenster (
-	TeiletypID serial,
+	TeiletypID integer,
 	Tönung varchar NOT NULL,
 	Glasart varchar NOT NULL,
 
@@ -367,7 +368,7 @@ CREATE TABLE Fenster (
 );
 
 CREATE TABLE Reifen (
-	TeiletypID serial,
+	TeiletypID integer,
 	Farbe varchar NOT NULL,
 	Zoll integer NOT NULL,
 	Felgenmaterial varchar NOT NULL,
