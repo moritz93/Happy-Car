@@ -400,6 +400,5 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 	SELECT AID FROM Werksaufträge WHERE WID=NEW.lagert_in GROUP BY WID HAVING Status='ARCHIVIERT';
 	END; $$ LANGUAGE plpgsql;
 
-
 		
 
