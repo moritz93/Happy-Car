@@ -400,5 +400,33 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 	SELECT AID FROM Werksaufträge WHERE WID=NEW.lagert_in GROUP BY WID HAVING Status='ARCHIVIERT';
 	END; $$ LANGUAGE plpgsql;
 
+
+
+-- calculate price for inserted order
+CREATE FUNCTION calculatePrice() RETURNS TRIGGER AS
+	$$
+	DECLARE
+	rabatt integer;
+	price numeric(10,2);
+	
+	BEGIN
+	rabatt := 0;
+	-- Kunde ist Kontaktperson / Großhändler
+	IF (EXISTS (SELECT 1 FROM Kontaktpersonen WHERE PID = NEW.KundenID)) THEN
+		rabatt := (SELECT Rabatt FROM ( SELECT *
+						FROM Aufträge
+						JOIN Kontaktpersonen
+						ON NEW.KundenID = Kontaktpersonen.PID
+					     ) AS tmp1
+					JOIN Großhändler
+					ON tmp1.GID = Großhändler.GID);	
+	END IF;
+	price := (100-rabatt) * (SELECT Preis FROM Modelle WHERE NEW.Modell_ID = Modelle.Modell_ID) * NEW.Anzahl;
+
+	UPDATE Aufträge SET Preis = price WHERE Aufträge.AID = NEW.AID;
+	
+	END; $$ LANGUAGE plpgsql;
+	
+CREATE TRIGGER calculatePrice AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE calculatePrice();
 		
 

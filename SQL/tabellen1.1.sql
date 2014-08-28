@@ -98,7 +98,7 @@ CREATE TABLE Autolagerarbeiter (
 
 
 CREATE TABLE Großhändler (
-	GID serial,
+	GID serial
 	Firmenname varchar(50) NOT NULL,
 	Straße varchar(50) NOT NULL,
 	PLZ varchar (10) NOT NULL,
@@ -144,7 +144,6 @@ CREATE TABLE Privatkunden (
 
 CREATE TABLE Kontaktpersonen (
 	PID integer,
-	GID integer NOT NULL,
 	
 	FOREIGN KEY (GID) REFERENCES Großhändler,
 	FOREIGN KEY (PID) REFERENCES Kunden,
@@ -158,7 +157,7 @@ CREATE DOMAIN Auftragsstatus AS varchar(14)
 -- Datum = null entspricht noch nicht abgeschlossen.
 CREATE TABLE Aufträge (
 	AID serial,
-	Preis numeric(10,2) NOT NULL,
+	Preis numeric(10,2),
 	Vorraussichtliches_Lieferdatum date,
 	Modell_ID integer NOT NULL,
 	Anzahl integer NOT NULL,

@@ -242,6 +242,6 @@ INSERT INTO Reifen VALUES
 	(15, 'Schwarz', 20, 'Aluminium');
 
 
-INSERT INTO Aufträge (Preis, Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES
 -- (Preis, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
-	(39998 , 1, 2, 1, 3);
+	(1, 2, 1, 3);
