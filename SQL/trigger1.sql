@@ -391,5 +391,7 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 
 
 
+
+
 		
 
