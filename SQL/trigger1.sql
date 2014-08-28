@@ -58,7 +58,54 @@ CREATE FUNCTION finishedDelivery() RETURNS TRIGGER AS
 	END; $$ LANGUAGE plpgsql;
 CREATE TRIGGER setOnDeliveryFinished AFTER DELETE ON liefert FOR EACH ROW EXECUTE PROCEDURE finishedDelivery();
 
-
+CREATE FUNCTION checkAvailableWork(integer) RETURNS boolean AS
+	$$
+	DECLARE 
+	auftrag integer;
+	countNeeded integer;
+	available boolean;
+	notmissing boolean;
+	BEGIN
+	IF(EXISTS (SELECT 1 FROM Werksaufträge WHERE WID=$1 AND Status='IN_BEARBEITUNG') )
+		THEN RETURN false; 
+	END IF;
+	FOR auftrag IN SELECT AID FROM Werksaufträge WHERE WID=$1
+	LOOP
+		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=auftrag);
+		available:=(NOT EXISTS (SELECT 1 FROM 
+			-- Wähle Autoteile, die diesem Auftrag zugeordnet sind
+			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = $1 AND AID=auftrag GROUP BY TeiletypID) AS tmp1
+			 RIGHT OUTER JOIN
+			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
+			(SELECT TeiletypID, (Anzahl * countNeeded) AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM 				Aufträge WHERE AID = auftrag)) AS tmp2
+			ON tmp1.TeiletypID=tmp2.TeiletypID)
+			WHERE teileNeeded>count OR count IS NULL LIMIT 1));
+		--Sind genügend Teile im Lager?
+		IF (available) THEN
+			IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=$1)) THEN
+				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=$1 AND AID=auftrag;
+				UPDATE Werksaufträge SET Herstellungsbeginn=CURRENT_DATE WHERE WID=$1 AND AID=auftrag;
+				RETURN true;
+			END IF;
+		END IF;
+		notmissing:=(NOT EXISTS (SELECT 1 FROM 
+			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
+			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = $1 AND AID IS NULL GROUP BY TeiletypID) AS tmp1
+			 RIGHT OUTER JOIN
+			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
+			(SELECT TeiletypID, (Anzahl * countNeeded) AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM 				Aufträge WHERE AID =auftrag)) AS tmp2
+			ON tmp1.TeiletypID=tmp2.TeiletypID)
+			WHERE teileNeeded>count OR count IS NULL LIMIT 1));
+		IF (notmissing) THEN
+			IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=$1)) THEN
+				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=$1 AND AID=auftrag;
+				UPDATE Werksaufträge SET Herstellungsbeginn=CURRENT_DATE WHERE WID=$1 AND AID=auftrag;
+				RETURN true;
+			END IF;
+		END IF;
+	END LOOP;
+	RETURN false;
+END; $$ LANGUAGE plpgsql;
 
 --car parts arrived
 CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
@@ -71,26 +118,9 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 		IF (OLD.Status='ARCHIVIERT' OR NEW.Status!='ARCHIVIERT') THEN RETURN NEW; END IF;
 		--SELECT max(TeileID) INTO teilid FROM Autoteile;
 		INSERT INTO Autoteile (TeiletypID, lagert_in, Lieferdatum, AID) VALUES (OLD.TeiletypID, OLD.WID, now(), OLD.AID);
-		UPDATE bestellt SET Eingangsdatum=CURRENT_DATE WHERE BID=OLD.BID;
-		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
-		IF(NEW.AID IS NULL) THEN 
-			FOR 
-		available:=(NOT EXISTS (SELECT 1 FROM 
-			-- Wähle Autoteile, die diesem Auftrag zugeordnet sind
-			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = OLD.WID AND AID=OLD.AID GROUP BY TeiletypID) AS tmp1
-			 RIGHT OUTER JOIN
-			--Anzahl benötigter Teile um NEW.Anzahl Autos herzustellen
-			(SELECT TeiletypID, (Anzahl * countNeeded) AS teileNeeded FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM 				Aufträge WHERE AID = NEW.AID)) AS tmp2
-			ON tmp1.TeiletypID=tmp2.TeiletypID)
-			WHERE teileNeeded>count OR count IS NULL LIMIT 1));
-		--Sind genügend Teile im Lager?
-		IF (available) THEN
-			IF(NOT EXISTS (SELECT * FROM Werksaufträge WHERE Status='IN_BEARBEITUNG' AND WID=NEW.WID)) THEN
-				UPDATE Werksaufträge SET Status='IN_BEARBEITUNG' WHERE WID=NEW.WID AND AID=NEW.AID;
-				UPDATE Werksaufträge SET Herstellungsbeginn=CURRENT_DATE WHERE WID=NEW.WID AND AID=NEW.AID;
-			END IF;
-		END IF;
-		RETURN OLD;
+		UPDATE Autoteile SET Lieferdatum=CURRENT_DATE WHERE TeileID=lastVal();
+		PERFORM checkAvailableWork(OLD.WID);
+		RETURN NEW;
 	END; $$ LANGUAGE plpgsql;
 -- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
 CREATE TRIGGER setOnCarPartsArrived AFTER UPDATE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
@@ -124,7 +154,6 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 		
 	BEGIN		
 		countNeeded := (SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID);
-		RAISE NOTICE 'NEW.WID=%, countNeeded=%, NEW.AID=%', NEW.WID, countNeeded, NEW.AID;
 		missing:=(EXISTS (SELECT 1 FROM 
 			-- Wähle Autoteile, die keinem Auftrag zugeordnet sind (AID ist NULL)
 			((SELECT TeiletypID, count(*) FROM Autoteile WHERE lagert_in = NEW.WID AND AID IS NULL GROUP BY TeiletypID) AS tmp1
@@ -135,30 +164,25 @@ CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 			WHERE teileNeeded>count OR count IS NULL LIMIT 1));
 		--Sind genügend Teile im Lager?
 		IF (missing) THEN --NEIN
-			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
-				RAISE NOTICE 'TeiletypId: %', part;
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts := (SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID = part);
 
 				IF(neededParts > 0) THEN
-					RAISE NOTICE 'neededParts_missing: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NEW.AID);
 				END IF;
 			END LOOP;
 		ELSE --JA
-			RAISE NOTICE 'Parts missing: %', missing;
 			--Iteriere über benötigte Teile
 			FOR part IN (SELECT TeiletypID FROM Modellteile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID))
 			LOOP
 				--Anzahl wieoft Teil gebraucht wird.
 				neededParts:=(SELECT Anzahl*(SELECT Anzahl FROM Aufträge WHERE AID=NEW.AID) FROM ModellTeile WHERE Modell_ID=(SELECT Modell_ID FROM Aufträge WHERE AID=NEW.AID) AND TeiletypID=part);
 				IF(neededParts > 0) THEN
-				RAISE NOTICE 'neededParts_in_stock: %', neededParts;
 					--Bestelle die Teile
 					INSERT INTO bestellt (HID, WID, TeiletypID, Anzahl, Bestelldatum, AID) VALUES 
 							      (getBestManufacturer(part), NEW.WID, part, neededParts, now(), NULL);
@@ -324,6 +348,7 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	werk integer;	
 	kfzid integer;
 	BEGIN
+	--Setze Startpunkt in Aufträge
 	IF(OLD.Status!='IN_BEARBEITUNG' AND NEW.status='IN_BEARBEITUNG')THEN
 		UPDATE Aufträge SET Status = IN_BEARBEITUNG WHERE NEW.Aid = Aufträge.AID;
 	END IF;
@@ -332,7 +357,7 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 		RETURN NULL;
 	END IF;
 	modellid=(SELECT Modell_ID FROM Aufträge WHERE AID=OLD.AID);
-	werk=(SELECT WID FROM Werksauftäge WHERE AID=WID);
+	werk=(SELECT WID FROM Werksauftäge WHERE AID=OLD.AID);
 	counter=(SELECT Anzahl FROM Aufträge WHERE AID=OLD.AID);
 	UPDATE Werksaufträge SET Herstellungsende=CURRENT_DATE WHERE WID=OLD.WID AND AID=OLD.AID;
 	--Gibt es einen freien LKW und Fahrer?
@@ -364,9 +389,7 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 	SELECT AID FROM Werksaufträge WHERE WID=NEW.lagert_in GROUP BY WID HAVING Status='ARCHIVIERT';
 	END; $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION checkAvailableWork(integer) RETURNS TRIGGER AS
-	$$
-	BEGIN
-	IF(
 
+
+		
 
