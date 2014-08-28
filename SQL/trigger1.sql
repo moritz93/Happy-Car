@@ -401,6 +401,5 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 	END; $$ LANGUAGE plpgsql;
 
 
-
 		
 
