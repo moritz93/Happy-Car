@@ -243,5 +243,5 @@ INSERT INTO Reifen VALUES
 
 
 INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES
--- (Preis, Modell_ID, Anzahl, Datum, KundenID, MitarbeiterID)
+-- ( Modell_ID, Anzahl, KundenID, MitarbeiterID)
 	(1, 2, 1, 3);
