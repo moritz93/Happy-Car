@@ -215,17 +215,17 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$
 	DECLARE
-	aid integer;
+	auftrag integer;
 	expectedTime integer;
 	liefer date;
 		
 	BEGIN
 	expectedTime=0;
-	FOR aid IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
+	FOR auftrag IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
 	LOOP
 
-		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge WHERE AID=aid);
-		expectedTime = expectedTime + (liefer - CURRENT_DATE);
+		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge WHERE AID=auftrag);
+		expectedTime = expectedTime + (liefer - CURRENT_DATE)+1;
 	END LOOP;
 	RETURN expectedTime * interval '1 days';
 	END;
