@@ -382,7 +382,7 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 			EXIT WHEN counter=0;
 			INSERT INTO Autos (Modell_ID, Status, produziertVon) VALUES (modellid, 'LAGERND', werk);
 			kfzid=(SELECT max(KFZ_ID) FROM Autos);
-			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, kfzid, modellid, fahrer, OLD.AID, now());
+			INSERT INTO liefert (LKW_ID, KFZ_ID, Modell_ID, MID, AID, Lieferdatum) VALUES (lkw, kfzid, modellid, fahrer, OLD.AID, NULL);
 			counter=counter-1;
 		END LOOP;
 	DELETE FROM Autoteile WHERE AID=OLD.AID;
