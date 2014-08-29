@@ -224,6 +224,16 @@ CREATE OR REPLACE VIEW Ingenieursicht AS
 
 
 
+-- Diese Sicht erlaubt die Einsicht offener Aufträge
+CREATE OR REPLACE VIEW offene_Aufträge AS
+	WITH offeneAufträge AS
+	(SELECT * 
+	FROM (SELECT Aufträge.AID, KundenID, Vorraussichtliches_Lieferdatum FROM Aufträge JOIN Kunden ON Aufträge.KundenID = Kunden.PID WHERE Aufträge.status = 'WARTEND') AS auftragT
+		JOIN Personen ON auftragT.KundenID = Personen.PID)
+	SELECT AID AS "Auftragsnr.", vorraussichtliches_lieferdatum AS "Vorrauss. Lieferung" , Vorname AS "Kundenvorname", Nachname AS "Kundenname", TelNr AS "Tel." FROM offeneAufträge;
+
+
+
 -- Manager können über diese Sichten Rückschlüsse auf Ausgaben bzw. Zeitvergeudung ziehen
 CREATE OR REPLACE VIEW Ausgaben AS
 	-- Abweichungen der max preise von den tatsächlichen Preisen angeben -> aggregieren in analysefunktion
@@ -238,16 +248,19 @@ CREATE OR REPLACE VIEW Zeitverzögerungen AS
 -- Sicht für offene Aufträge
 -- TODO: Ausnahmen werfen
 -- TODO: Überall wo etwas mit Aufträgen gemacht wird darauf achten dass auch ein Auftragsstatus übergeben wird
+-- TODO: test spezialisierungen update personal
 
 
 
 
--- Personal liefert einen Überblick über alle im Unternehmen beschäftigten Mitarbeiter, sowie ihre Spezialisierung und deren Attribute, und dient der Umsetzung des Personalmanagements
+-- Personal liefert einen Überblick über alle momentan im Unternehmen beschäftigten Mitarbeiter,
+-- sowie ihre Spezialisierung und deren Attribute, und dient der Umsetzung des Personalmanagements
 -- Über die Select Regel wird die Spezialisierung automatisch ermittelt und ausgegeben
--- Das Personalmangement darf Mitarbeiter einstellen und entlassen, sowie ihre Daten anpassen
+-- Das Personalmangement darf Mitarbeiter einstellen und entlassen, sowie ihre Daten anpassen (ausser ihre ID)
 CREATE OR REPLACE VIEW Personal AS
-	SELECT  Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr, Beschäftigungsbeginn, Gehalt, (date '01-01-2014') AS Führerscheindatum, (integer '13') AS arbeitet_in,
-	(varchar '') AS Spezialisierung FROM (Personen JOIN Mitarbeiter ON Personen.PID = Mitarbeiter.PID);
+	SELECT  Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr, Beschäftigungsbeginn, Gehalt, (date '01-01-2014') AS Führerscheindatum, 
+	(integer '13') AS arbeitet_in, (varchar '') AS Spezialisierung FROM (Personen JOIN Mitarbeiter ON Personen.PID = Mitarbeiter.PID)
+	WHERE Beschäftigungsende IS NULL;
 
 CREATE OR REPLACE RULE "_RETURN" 
 AS ON SELECT TO Personal
@@ -282,8 +295,8 @@ CREATE OR REPLACE FUNCTION insertInPersonal() RETURNS TRIGGER AS
 	BEGIN
 	INSERT INTO Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES (NEW.Vorname, NEW.Nachname, NEW.PLZ, NEW.Straße, NEW.Wohnort, NEW.Email, NEW.TelNr);
 	thisID=lastval();
-	INSERT INTO Mitarbeiter (PID, Beschäftigungsbeginn, Gehalt) VALUES (thisID, CURRENT_DATE, NEW.Gehalt);
-	CASE NEW.Spezialisierung 
+	INSERT INTO Mitarbeiter VALUES (thisID, CURRENT_DATE, NEW.Gehalt, NULL);
+	CASE NEW.Spezialisierung
 		WHEN 'TEILELAGERARBEITER' THEN
 			INSERT INTO Lagerarbeiter VALUES (thisID);
 			INSERT INTO Teilelagerarbeiter VALUES (thisID, NEW.arbeitet_in);
@@ -293,49 +306,110 @@ CREATE OR REPLACE FUNCTION insertInPersonal() RETURNS TRIGGER AS
 		WHEN 'LKW FAHRER' THEN
 			INSERT INTO LKW_Fahrer VALUES (thisID, NEW.Führerscheindatum);
 		WHEN 'WERKSARBEITER' THEN
-			INSERT INTO Werksarbeiter VALUES (thisID);
+			INSERT INTO Werksarbeiter VALUES (thisID, NEW.arbeitet_in);
 		WHEN 'VERWALTUNGSANGESTELLTE' THEN
 			INSERT INTO Verwaltungsangestellte VALUES (thisID);
 		WHEN 'LAGERARBEITER' THEN
 			INSERT INTO Lagerarbeiter VALUES (thisID);
 		WHEN 'MITARBEITER' THEN
 			RETURN NEW;
-		ELSE
-			RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
+		ELSE RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
 	END CASE;
 	RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER onInsertInPersonal INSTEAD OF INSERT ON Personal FOR EACH ROW EXECUTE PROCEDURE insertInPersonal();
 
-CREATE OR REPLACE FUNCTION updatePersonal() RETURNS TRIGGER AS
+CREATE OR REPLACE FUNCTION updateOnPersonal() RETURNS TRIGGER AS
 	$$
 	BEGIN
+	IF OLD.PID != NEW.PID THEN RAISE EXCEPTION 'ID of a person cannot be changed.';
+	IF NEW.Beschäftigungsbeginn IS NOT NULL THEN RAISE EXCEPTION 'Data of a former employee cannot be changed. Neither can employees be fired via an update operation.';
 	UPDATE Personen SET Vorname = NEW.Vorname, Nachname = NEW.Nachname, PLZ = NEW.PLZ, Straße = NEW.Straße, Wohnort = NEW.Wohnort, Email = NEW.Email, TelNr = NEW.TelNr
+		WHERE PID = NEW.PID;
+	UPDATE Mitarbeiter SET Beschäftigungsbeginn = NEW.Beschäftigungsbeginn, Gehalt = NEW.Gehalt
 	WHERE PID = NEW.PID;
-	-- TODO: UPdate vervollständigen, dann delete machen
-	INSERT INTO Mitarbeiter (PID, Beschäftigungsbeginn, Gehalt) VALUES (thisID, CURRENT_DATE, NEW.Gehalt);
-	CASE NEW.Spezialisierung 
-		WHEN 'TEILELAGERARBEITER' THEN
-			INSERT INTO Lagerarbeiter VALUES (thisID);
-			INSERT INTO Teilelagerarbeiter VALUES (thisID, NEW.arbeitet_in);
-		WHEN 'AUTOLAGERARBEITER' THEN
-			INSERT INTO Lagerarbeiter VALUES (thisID);
-			INSERT INTO Autolagerarbeiter VALUES (thisID);
-		WHEN 'LKW FAHRER' THEN
-			INSERT INTO LKW_Fahrer VALUES (thisID, NEW.Führerscheindatum);
-		WHEN 'WERKSARBEITER' THEN
-			INSERT INTO Werksarbeiter VALUES (thisID);
-		WHEN 'VERWALTUNGSANGESTELLTE' THEN
-			INSERT INTO Verwaltungsangestellte VALUES (thisID);
-		WHEN 'LAGERARBEITER' THEN
-			INSERT INTO Lagerarbeiter VALUES (thisID);
-		WHEN 'MITARBEITER' THEN
+	IF OLD.Spezialisierung = NEW.Spezialisierung THEN
+		CASE NEW.Spezialisierung 
+			WHEN 'TEILELAGERARBEITER' THEN
+				UPDATE Teilelagerarbeiter SET WID = NEW.arbeitet_in WHERE PID = NEW.PID;
+			WHEN 'AUTOLAGERARBEITER' THEN -- nichts zu updaten
+			WHEN 'LKW FAHRER' THEN
+				UPDATE LKW_Fahrer SET Führerscheindatum = NEW.Führerscheindatum WHERE PID = NEW.PID;
+			WHEN 'WERKSARBEITER' THEN
+				UPDATE Werksarbeiter SET WID = NEW.arbeitet_in WHERE PID = NEW.PID;
+			WHEN 'VERWALTUNGSANGESTELLTE' THEN -- nichts zu updaten
+			WHEN 'LAGERARBEITER' THEN -- nichts zu updaten
+			WHEN 'MITARBEITER' THEN -- nichts zu updaten
+			ELSE RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
+		END CASE;
+	ELSE
+		CASE OLD.Spezialisierung
+			WHEN 'TEILELAGERARBEITER' THEN
+				DELETE FROM Teilelagerarbeiter WHERE PID = NEW.PID;
+			WHEN 'LKW FAHRER' THEN
+				DELETE FROM LKW_Fahrer WHERE PID = NEW.PID;
+			WHEN 'WERKSARBEITER' THEN
+				DELETE FROM Werksarbeiter WHERE PID = NEW.PID;
+			WHEN 'VERWALTUNGSANGESTELLTE' THEN
+				DELETE FROM Verwaltungsangestellte WHERE PID = NEW.PID;
+			WHEN 'LAGERARBEITER' THEN
+				DELETE FROM Lagerarbeiter WHERE PID = NEW.PID;
+			WHEN 'MITARBEITER' THEN -- nichts zu löschen
+			ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
+		END CASE;
+		CASE NEW.Spezialisierung
+			WHEN 'TEILELAGERARBEITER' THEN
+				INSERT INTO Lagerarbeiter VALUES (thisID);
+				INSERT INTO Teilelagerarbeiter VALUES (thisID, NEW.arbeitet_in);
+			WHEN 'AUTOLAGERARBEITER' THEN
+				INSERT INTO Lagerarbeiter VALUES (thisID);
+				INSERT INTO Autolagerarbeiter VALUES (thisID);
+			WHEN 'LKW FAHRER' THEN
+				INSERT INTO LKW_Fahrer VALUES (thisID, NEW.Führerscheindatum);
+			WHEN 'WERKSARBEITER' THEN
+				INSERT INTO Werksarbeiter VALUES (thisID, NEW.arbeitet_in);
+			WHEN 'VERWALTUNGSANGESTELLTE' THEN
+				INSERT INTO Verwaltungsangestellte VALUES (thisID);
+			WHEN 'LAGERARBEITER' THEN
+				INSERT INTO Lagerarbeiter VALUES (thisID);
+			WHEN 'MITARBEITER' THEN
 			RETURN NEW;
-		ELSE
-			RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
-	END CASE;
+			ELSE RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
+		END CASE;
+	END IF;
 	RETURN NEW;
 END; $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER onInsertInPersonal INSTEAD OF INSERT ON Personal FOR EACH ROW EXECUTE PROCEDURE insertInPersonal();
+CREATE TRIGGER onUpdateOnPersonal INSTEAD OF UPDATE ON Personal FOR EACH ROW EXECUTE PROCEDURE updateOnPersonal();
+
+-- Löschen bzw. entlassen eines Mitarbeiters kommt einer Archivierung gleich, die durch die Setzung des Beschäftigungsendes realisiert wird.
+CREATE OR REPLACE FUNCTION deleteFromPersonal() RETURNS TRIGGER AS
+	$$
+	BEGIN
+	CASE OLD.Spezialisierung 
+		WHEN 'TEILELAGERARBEITER' THEN
+			DELETE FROM Teilelagerarbeiter WHERE PID = NEW.PID;
+		WHEN 'LKW FAHRER' THEN
+			DELETE FROM LKW_Fahrer WHERE PID = NEW.PID;
+		WHEN 'WERKSARBEITER' THEN
+			DELETE FROM Werksarbeiter WHERE PID = NEW.PID;
+		WHEN 'VERWALTUNGSANGESTELLTE' THEN
+			DELETE FROM Verwaltungsangestellte WHERE PID = NEW.PID;
+		WHEN 'LAGERARBEITER' THEN
+			DELETE FROM Lagerarbeiter WHERE PID = NEW.PID;
+		WHEN 'MITARBEITER' THEN -- nichts zu löschen
+		ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
+	END CASE;
+	UPDATE Mitarbeiter SET Beschäftigungsende = now() WHERE PID = OLD.PID;
+	RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER onDeleteFromPersonal INSTEAD OF DELETE ON Personal FOR EACH ROW EXECUTE PROCEDURE deleteFromPersonal();
+
+
+
+-- Ingenieure können über diese Sicht neue Teiletypen einführen
+CREATE OR REPLACE VIEW Ingenieursicht AS
+	SELECT Bezeichnung, TeiletypID, maxPreis, Teiletyp IN ""
+	FROM Autoteiltypen NATURAL JOIN Motoren...

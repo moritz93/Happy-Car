@@ -14,7 +14,7 @@ CREATE FUNCTION checkWerksid() RETURNS TRIGGER AS
 CREATE CONSTRAINT TRIGGER validWerksarbeiter AFTER INSERT OR UPDATE ON Werksarbeiter INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE checkWerksid();
 CREATE CONSTRAINT TRIGGER validTeilelagerarbeiter AFTER INSERT OR UPDATE ON Teilelagerarbeiter INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE checkWerksid();
 
---2.LKW-Fahrer müssen den Führerschein mindestens 3 Jahre besitzen.
+--2. LKW-Fahrer müssen den Führerschein mindestens 3 Jahre besitzen.
 CREATE FUNCTION checkLicenseDate() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(now() - NEW.führerscheindatum <= interval '3 years') THEN 
@@ -25,7 +25,7 @@ CREATE FUNCTION checkLicenseDate() RETURNS TRIGGER AS
 	END; $$ LANGUAGE plpgsql;
 CREATE CONSTRAINT TRIGGER validLkwFahrer AFTER INSERT OR UPDATE ON LKW_Fahrer INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE checkLicenseDate();
 
---3.Beschäftigungsbeginn muss in der Vergangenheit liegen
+--3. Beschäftigungsbeginn muss in der Vergangenheit liegen
 CREATE FUNCTION checkBeginn() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(NEW.beschäftigungsbeginn > now()) THEN 
@@ -35,5 +35,14 @@ CREATE FUNCTION checkBeginn() RETURNS TRIGGER AS
 		RETURN NEW;
 	END; $$ LANGUAGE plpgsql;
 CREATE CONSTRAINT TRIGGER validWerksarbeiter AFTER INSERT OR UPDATE ON Mitarbeiter INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE checkBeginn();
+
+--4. Wenn ein Auto auf ein LKW geladen wird, muss der Status auf LIEFERND gesetzt werden.
+CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
+	$$ BEGIN
+		UPDATE Autos SET Status='LIEFERND' WHERE kfz_id=NEW.kfz_id AND modell_id=NEW.modell_id;
+		RETURN NEW;
+	END;$$ LANGUAGE plpgsql;
+	
+CREATE CONSTRAINT TRIGGER validDelivery AFTER INSERT OR UPDATE ON liefert INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE newDelivery();
 
 
