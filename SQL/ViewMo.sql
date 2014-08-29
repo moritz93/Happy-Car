@@ -1,6 +1,6 @@
-﻿SELECT Bezeichnung, count(*) AS "bereits verkauft"
+﻿SELECT Bezeichnung, sum(Modelle.Anzahl) AS "bereits verkauft"
 FROM archivierteAufträge
 JOIN Modelle
 ON Modelle.Modell_ID = Aufträge.Modell_ID
-GROUP BY Anzahl
+GROUP BY Modell_ID
 
