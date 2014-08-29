@@ -2,7 +2,7 @@
 
 
 
--- Bietet Kundenname, Modellname, Vor. Lieferdatum, Anzahl, Preis und Auftragsnummer aller Aufträge einer Schnittstelle an
+-- Bietet Kundenname, Modellname, Vor. Lieferdatum, Anzahl, Preis und Auftragsnummer aller Aufträge (offen wie archiviert) einer Schnittstelle an
 CREATE OR REPLACE VIEW Kundensicht AS
 	WITH Kundeninfo AS
 		(SELECT Vorname, Nachname, Aufträge.KundenID AS KundenID, Aufträge.Status AS Auftragsstatus, Aufträge.AID AS Auftrag1 FROM Aufträge JOIN Personen ON Aufträge.KundenID = Personen.PID),
@@ -13,12 +13,22 @@ CREATE OR REPLACE VIEW Kundensicht AS
 
 
 
+-- Diese Sicht erlaubt die Einsicht offener Aufträge
+CREATE OR REPLACE VIEW offene_Aufträge AS
+	WITH offeneAufträge AS
+	(SELECT * 
+	FROM (SELECT Aufträge.AID, KundenID, Vorraussichtliches_Lieferdatum FROM Aufträge JOIN Kunden ON Aufträge.KundenID = Kunden.PID WHERE Aufträge.status = 'WARTEND') AS auftragT
+		JOIN Personen ON auftragT.KundenID = Personen.PID)
+	SELECT AID AS "Auftragsnr.", vorraussichtliches_lieferdatum AS "Vorrauss. Lieferung" , Vorname AS "Kundenvorname", Nachname AS "Kundenname", TelNr AS "Tel." FROM offeneAufträge;
+
+
+
 -- Erlaubt einem Hersteller sein Teileangebot einzusehen und ggf. anzupassen
 CREATE OR REPLACE VIEW Herstellerangebot AS
 	WITH Herstellerteile AS
 		(SELECT Hersteller.HID AS HID, Firmenname, TeiletypID, Bezeichnung, Preis, Zeit FROM Hersteller JOIN produzieren ON Hersteller.HID = produzieren.HID 
 		JOIN Autoteiltypen USING (TeiletypID))
-	SELECT Firmenname, HID AS Herstelleridentifikationsnummer, TeiletypID, Bezeichnung, Preis, Zeit FROM Herstellerteile;
+	SELECT Firmenname, HID AS HerstellerID, TeiletypID, Bezeichnung, Preis, Zeit FROM Herstellerteile;
 
 -- Notwendig da laut Postgres Doku von CREATE RULE:
 -- "There is a catch if you try to use conditional rules for view updates: 
@@ -30,24 +40,24 @@ DO INSTEAD NOTHING;
 
 CREATE OR REPLACE RULE manufacturerNewPartInInventory AS ON INSERT TO Herstellerangebot 
 WHERE EXISTS (SELECT * FROM Autoteiltypen WHERE Autoteiltypen.TeiletypID = NEW.TeiletypID)
-DO INSERT INTO produzieren VALUES (NEW.TeiletypID, NEW.Herstelleridentifikationsnummer, NEW.Preis, NEW.Zeit);
+DO INSERT INTO produzieren VALUES (NEW.TeiletypID, NEW.HerstellerID, NEW.Preis, NEW.Zeit);
 
 CREATE OR REPLACE RULE manufacturerPartUpdatedInInventory AS ON UPDATE TO Herstellerangebot 
 -- TeiletypIDs dürfen von Herstellern nicht geändert werden.
 -- Möchte ein Hersteller ein Teil komplett durch ein neues ersetzen muss er stattdessen löschen und dann einfügen.
 WHERE NEW.TeiletypID = OLD.TeiletypID 
-DO ALSO UPDATE produzieren SET HID = NEW.Herstelleridentifikationsnummer, Preis = NEW.Preis, Zeit = NEW.Zeit
-	WHERE TeiletypID = OLD.TeiletypID AND HID = OLD.Herstelleridentifikationsnummer;
+DO ALSO UPDATE produzieren SET HID = NEW.HerstellerID, Preis = NEW.Preis, Zeit = NEW.Zeit
+	WHERE TeiletypID = OLD.TeiletypID AND HID = OLD.HerstellerID;
 
 CREATE OR REPLACE RULE manufacturerDeletePartInInventory AS ON DELETE TO Herstellerangebot
-DO INSTEAD DELETE FROM produzieren WHERE TeiletypID = OLD.TeiletypID AND HID = OLD.Herstelleridentifikationsnummer 
+DO INSTEAD DELETE FROM produzieren WHERE TeiletypID = OLD.TeiletypID AND HID = OLD.HerstellerID
 	AND Preis = OLD.Preis AND Zeit = OLD.Zeit;
 
 
 
 -- Zeigt die aktuellen Bestellungen einem Hersteller an (nicht modifizierbar)
 CREATE OR REPLACE VIEW Herstellerbestellungen AS
-	SELECT Firmenname, Hersteller.HID AS Herstelleridentifikationsnummer, BID AS Bestellungsnummer, Status AS Bestellungsstatus, 
+	SELECT Firmenname, Hersteller.HID AS HerstellerID, BID AS Bestellungsnummer, Status AS Bestellungsstatus, 
 	bestellt.TeiletypID AS TeiletypID, Bezeichnung AS Teilbezeichnung
 	FROM Hersteller JOIN bestellt ON Hersteller.HID = bestellt.HID JOIN Autoteiltypen ON bestellt.TeiletypID = Autoteiltypen.TeiletypID;
 
@@ -104,8 +114,25 @@ DO ALSO DELETE FROM liefert WHERE liefert.Lieferdatum IS NULL AND liefert.KFZ_ID
 
 
 
--- Sicht für Verwaltungsangestellte
-CREATE OR REPLACE VIEW Verwaltung AS
+-- Erlaubt das Hinzufügen von Großhändlern
+CREATE OR REPLACE VIEW Großhändlersicht AS
+	SELECT GID AS GroßhändlerID, Firmenname, Straße, PLZ, Ort, Rabatt FROM Großhändler;
+
+CREATE OR REPLACE RULE insertGH AS ON INSERT TO Großhändlersicht
+DO INSTEAD INSERT INTO Großhändler(Firmenname, Straße, PLZ, Ort, Rabatt) VALUES (NEW.Firmenname, NEW.Straße, NEW.PLZ, NEW.Ort, NEW.Rabatt);
+
+CREATE OR REPLACE RULE updateGH AS ON UPDATE TO Großhändlersicht
+DO INSTEAD UPDATE Großhändler SET Firmenname = NEW.Firmenname, Straße = NEW.Straße, PLZ = NEW.PLZ, Ort = NEW.Ort, Rabatt = NEW.Rabatt
+WHERE GID = OLD.GroßhändlerID;
+
+-- Nur Großhändler, die noch keine Kontaktperson haben können gelöscht werden.
+CREATE OR REPLACE RULE deleteGH AS ON DELETE TO Großhändlersicht
+DO INSTEAD DELETE FROM Großhändler WHERE GID = OLD.GroßhändlerID;
+
+
+
+-- Sicht für Verwaltungsangestellte, die Aufträge entgegen nehmen
+CREATE OR REPLACE VIEW VerwaltungAuftragssicht AS
 	WITH Kundeninfo AS
 		(SELECT Vorname, Nachname, Aufträge.AID AS Auftrag1 FROM Aufträge JOIN Personen ON Aufträge.KundenID = Personen.PID),
 	Modellname AS
@@ -114,18 +141,97 @@ CREATE OR REPLACE VIEW Verwaltung AS
 	Datum AS Auftrag_erteilt_am, Anzahl, Preis, AID AS Auftragsnummer, MitarbeiterID
 	FROM (SELECT * FROM Kundeninfo JOIN Modellname ON Auftrag1 = Auftrag2) AS tmp JOIN Aufträge on AID = Auftrag1;
 
-CREATE OR REPLACE RULE adminInsertNewJob AS ON INSERT TO Verwaltung
+CREATE OR REPLACE RULE adminInsertNewJob AS ON INSERT TO VerwaltungAuftragssicht
 DO INSTEAD INSERT INTO Aufträge(Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (NEW.Modell_ID, NEW.Anzahl, NEW.KundenID, NEW.MitarbeiterID);
 
 
 
--- Diese Sicht erlaubt die Einsicht offener Aufträge
-CREATE OR REPLACE VIEW offene_Aufträge AS
-	WITH offeneAufträge AS
-	(SELECT * 
-	FROM (SELECT Aufträge.AID, KundenID, Vorraussichtliches_Lieferdatum FROM Aufträge JOIN Kunden ON Aufträge.KundenID = Kunden.PID WHERE Aufträge.status = 'WARTEND') AS auftragT
-		JOIN Personen ON auftragT.KundenID = Personen.PID)
-	SELECT AID AS "Auftragsnr.", vorraussichtliches_lieferdatum AS "Vorrauss. Lieferung" , Vorname AS "Kundenvorname", Nachname AS "Kundenname", TelNr AS "Tel." FROM offeneAufträge;
+-- Sicht für Verwaltungsangestellte, die Kunden ins System aufnehmen sowie ihre Daten anpassen
+-- Kunden können aus Nachverfolgungsgründen nicht gelöscht werden, ausser sie haben noch keinen Auftrag aufgegeben
+-- GroßhändlerID ist 0 bei Privatkunden
+CREATE OR REPLACE VIEW VerwaltungKundenaufnahme AS
+	SELECT PID, Vorname, Nachname, (varchar '') AS Kundenart, Distanz, PLZ, Straße, Wohnort, Email, TelNR, (integer '0') AS GroßhändlerID FROM Kunden JOIN Personen USING (PID);
+
+CREATE OR REPLACE RULE "_RETURN" 
+AS ON SELECT TO VerwaltungKundenaufnahme
+DO INSTEAD SELECT PID, Vorname, Nachname,
+	(CASE 
+		WHEN PID  IN (SELECT PID FROM Privatkunden) THEN  
+			varchar 'PRIVATKUNDE'
+		WHEN PID  IN (SELECT PID FROM Kontaktpersonen) THEN 
+			varchar 'KONTAKTPERSON'
+		ELSE varchar 'Kein Kunde oder noch nicht in Kunden Tabelle.'
+	END) AS Kundenart, Distanz, PLZ, Straße, Wohnort, Email, TelNR, GID AS GroßhändlerID
+FROM Kunden JOIN Personen USING (PID) FULL OUTER JOIN Kontaktpersonen USING (PID);
+
+CREATE OR REPLACE FUNCTION insertNewCustomer() RETURNS TRIGGER AS
+	$$ 
+	DECLARE 
+	thisID integer;
+	BEGIN
+	INSERT INTO Kunden (Distanz) VALUES (NEW.Distanz);
+	thisID=lastval();
+	CASE NEW.Kundenart
+		WHEN 'PRIVATKUNDE' THEN
+			INSERT INTO Privatkunden VALUES (thisID);
+		WHEN 'KONTAKTPERSON' THEN
+			INSERT INTO Kontaktpersonen VALUES (thisID, NEW.GroßhändlerID);
+		ELSE RAISE EXCEPTION 'Ungültige Kundenart: %', NEW.Kundenart;
+	END CASE;
+	RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER onInsertNewCustomer INSTEAD OF INSERT ON VerwaltungKundenaufnahme FOR EACH ROW EXECUTE PROCEDURE insertNewCustomer();
+
+CREATE OR REPLACE FUNCTION updateCustomer() RETURNS TRIGGER AS
+	$$
+	BEGIN
+	IF OLD.PID != NEW.PID THEN RAISE EXCEPTION 'ID of a customer cannot be changed.';
+	END IF;
+	UPDATE Kunden SET Distanz = NEW.Distanz WHERE PID = NEW.PID;
+	IF OLD.Kundenart = NEW.Kundenart THEN
+		CASE NEW.Kundenart
+			WHEN 'PRIVATKUNDE' THEN -- nichts zu updaten
+			WHEN 'KONTAKTPERSON' THEN
+				UPDATE Kontaktpersonen SET GID = NEW.GID;
+			ELSE RAISE EXCEPTION 'Ungültige Kundenart: %', NEW.Kundenart;
+		END CASE;
+	ELSE
+		CASE OLD.Kundenart
+			WHEN 'PRIVATKUNDE' THEN
+				DELETE FROM Privatkunden WHERE PID = OLD.PID;
+			WHEN 'KONTAKTPERSON' THEN
+				DELETE FROM Kontaktpersonen WHERE PID = OLD.PID;
+			ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
+		END CASE;
+		CASE NEW.Kundenart
+			WHEN 'PRIVATKUNDE' THEN
+				INSERT INTO Privatkunden VALUES (NEW.PID);
+			WHEN 'KONTAKTPERSON' THEN
+				INSERT INTO Kontaktpersonen VALUES (NEW.PID, NEW.GroßhändlerID);
+			ELSE RAISE EXCEPTION 'Ungültige Kundenart: %',NEW.Kundenart;
+		END CASE;
+	END IF;
+	RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER onUpdateCustomer INSTEAD OF UPDATE ON VerwaltungKundenaufnahme FOR EACH ROW EXECUTE PROCEDURE updateCustomer();
+
+CREATE OR REPLACE FUNCTION deleteCustomer() RETURNS TRIGGER AS
+	$$
+	BEGIN
+	CASE OLD.Kundenart
+		WHEN 'PRIVATKUNDE' THEN
+			DELETE FROM Privatkunden WHERE PID = OLD.PID;
+		WHEN 'KONTAKTPERSON' THEN
+			DELETE FROM Kontaktpersonen WHERE PID = OLD.PID;
+		ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
+	END CASE;
+	DELETE FROM Kunden WHERE PID = OLD.PID;
+	RETURN OLD;
+END; $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER onDeleteCustomer INSTEAD OF DELETE ON VerwaltungKundenaufnahme FOR EACH ROW EXECUTE PROCEDURE deleteCustomer();
 
 
 
@@ -135,21 +241,12 @@ CREATE OR REPLACE VIEW Produktion AS
 
 
 
--- Über folgende Sichten können die Archive eingesehen werden:
-CREATE OR REPLACE VIEW archivierteAutos AS
-	SELECT * FROM Autos WHERE Status = 'ARCHIVIERT';
+-- Sicht auf alle Fahrzeuge in der LKW Fahrzeugflotte
+CREATE OR REPLACE VIEW Fuhrpark AS
+	SELECT * FROM LKWs;
 
-CREATE OR REPLACE VIEW archivierteAufträge AS
-	SELECT * FROM Aufträge WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteWerksaufträge AS
-	SELECT * FROM Werksaufträge WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteBestellungen AS
-	SELECT * FROM bestellt WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteLieferungen AS
-	SELECT * FROM liefert WHERE Lieferdatum IS NOT NULL;
+CREATE OR REPLACE RULE newVehicle AS ON INSERT TO Fuhrpark
+DO INSTEAD INSERT INTO LKWs(Kaufdatum) VALUES (NEW.Kaufdatum);
 
 
 
@@ -160,13 +257,13 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 --CREATE OR REPLACE VIEW Zeitverzögerungen AS
 	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
 
-	
--- Personalmanagement -> Sicht die alle Spezialisierungen konsolidiert
 
-
--- TODO: Überall wo etwas mit Aufträgen gemacht wird darauf achten dass auch ein Auftragsstatus übergeben wird
 -- TODO: test spezialisierungen update personal
--- TODO: Sicht fürs Kundeneinfügen
+
+-- TODO: Sicht zum erstellen von Werken machen
+-- TODO: LKW einfügen sicht
+-- SICHT alleas autoteile
+-- TODO: Modellsicht -> hinzufügen
 
 
 
@@ -267,33 +364,37 @@ CREATE OR REPLACE FUNCTION updateOnPersonal() RETURNS TRIGGER AS
 	ELSE
 		CASE OLD.Spezialisierung
 			WHEN 'TEILELAGERARBEITER' THEN
-				DELETE FROM Teilelagerarbeiter WHERE PID = NEW.PID;
+				DELETE FROM Teilelagerarbeiter WHERE PID = OLD.PID;
+				DELETE FROM Lagerarbeiter WHERE PID = OLD.PID;
+			WHEN 'AUTOLAGERARBEITER' THEN
+				DELETE FROM Autolagerarbeiter WHERE PID = OLD.PID;
+				DELETE FROM Lagerarbeiter WHERE PID = OLD.PID;
 			WHEN 'LKW FAHRER' THEN
-				DELETE FROM LKW_Fahrer WHERE PID = NEW.PID;
+				DELETE FROM LKW_Fahrer WHERE PID = OLD.PID;
 			WHEN 'WERKSARBEITER' THEN
-				DELETE FROM Werksarbeiter WHERE PID = NEW.PID;
+				DELETE FROM Werksarbeiter WHERE PID = OLD.PID;
 			WHEN 'VERWALTUNGSANGESTELLTE' THEN
-				DELETE FROM Verwaltungsangestellte WHERE PID = NEW.PID;
+				DELETE FROM Verwaltungsangestellte WHERE PID = OLD.PID;
 			WHEN 'LAGERARBEITER' THEN
-				DELETE FROM Lagerarbeiter WHERE PID = NEW.PID;
+				DELETE FROM Lagerarbeiter WHERE PID = OLD.PID;
 			WHEN 'MITARBEITER' THEN -- nichts zu löschen
 			ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
 		END CASE;
 		CASE NEW.Spezialisierung
 			WHEN 'TEILELAGERARBEITER' THEN
-				INSERT INTO Lagerarbeiter VALUES (thisID);
-				INSERT INTO Teilelagerarbeiter VALUES (thisID, NEW.arbeitet_in);
+				INSERT INTO Lagerarbeiter VALUES (NEW.PID);
+				INSERT INTO Teilelagerarbeiter VALUES (NEW.PID, NEW.arbeitet_in);
 			WHEN 'AUTOLAGERARBEITER' THEN
-				INSERT INTO Lagerarbeiter VALUES (thisID);
-				INSERT INTO Autolagerarbeiter VALUES (thisID);
+				INSERT INTO Lagerarbeiter VALUES (NEW.PID);
+				INSERT INTO Autolagerarbeiter VALUES (NEW.PID);
 			WHEN 'LKW FAHRER' THEN
-				INSERT INTO LKW_Fahrer VALUES (thisID, NEW.Führerscheindatum);
+				INSERT INTO LKW_Fahrer VALUES (NEW.PID, NEW.Führerscheindatum);
 			WHEN 'WERKSARBEITER' THEN
-				INSERT INTO Werksarbeiter VALUES (thisID, NEW.arbeitet_in);
+				INSERT INTO Werksarbeiter VALUES (NEW.PID, NEW.arbeitet_in);
 			WHEN 'VERWALTUNGSANGESTELLTE' THEN
-				INSERT INTO Verwaltungsangestellte VALUES (thisID);
+				INSERT INTO Verwaltungsangestellte VALUES (NEW.PID);
 			WHEN 'LAGERARBEITER' THEN
-				INSERT INTO Lagerarbeiter VALUES (thisID);
+				INSERT INTO Lagerarbeiter VALUES (NEW.PID);
 			WHEN 'MITARBEITER' THEN
 			RETURN NEW;
 			ELSE RAISE EXCEPTION 'Ungültige Spezialisierung: %',NEW.Spezialisierung;
@@ -323,7 +424,7 @@ CREATE OR REPLACE FUNCTION deleteFromPersonal() RETURNS TRIGGER AS
 		ELSE RAISE EXCEPTION 'Some inconsistent state was reached.';
 	END CASE;
 	UPDATE Mitarbeiter SET Beschäftigungsende = now() WHERE PID = OLD.PID;
-	RETURN NEW;
+	RETURN OLD;
 END; $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER onDeleteFromPersonal INSTEAD OF DELETE ON Personal FOR EACH ROW EXECUTE PROCEDURE deleteFromPersonal();
@@ -333,6 +434,8 @@ CREATE TRIGGER onDeleteFromPersonal INSTEAD OF DELETE ON Personal FOR EACH ROW E
 -- Ingenieure können über diese Sichten neue Teiletypen einführen oder anpassen, aber nicht löschen,
 -- da dadurch Informationen vergangener Aufträge verloren gehen könnten.
 -- Die TeiletypID, die beim Einfügen angegeben wird, wird ignoriert, da diese eine Serial ist.
+-- Die Entscheidung fünf Sichten statt nur einer anzulegen beruht auf der sonst hohen Anzahl von Null Values,
+-- da jedes Teil ja nur eine Spezialisierung hat.
 CREATE OR REPLACE VIEW IngenieursichtMotoren AS
 	SELECT Bezeichnung, TeiletypID, maxPreis, PS, Drehzahl, Verbrauch, Spritart
 	FROM Autoteiltypen JOIN Motoren USING (TeiletypID);
@@ -397,3 +500,22 @@ CREATE OR REPLACE RULE updateReifen AS ON UPDATE TO IngenieursichtReifen
 DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
 	UPDATE Reifen SET Farbe = NEW.Farbe, Zoll = NEW.Zoll, Felgenmaterial = NEW.Felgenmaterial
 	WHERE TeiletypID = NEW.TeiletypID);
+
+
+
+-- Über folgende Sichten können die Archive eingesehen werden:
+CREATE OR REPLACE VIEW archivierteAutos AS
+	SELECT * FROM Autos WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteAufträge AS
+	SELECT * FROM Aufträge WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteWerksaufträge AS
+	SELECT WID, Name AS Werkname, AID, Status, Herstellungsbeginn, Herstellungsende
+	FROM Werksaufträge JOIN Werke USING (WID) WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteBestellungen AS
+	SELECT * FROM bestellt WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteLieferungen AS
+	SELECT * FROM liefert WHERE Lieferdatum IS NOT NULL;
