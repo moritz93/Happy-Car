@@ -6,8 +6,48 @@ FROM archivierteAufträge
 JOIN Modelle
 ON Modelle.Modell_ID = archivierteAufträge.Modell_ID
 GROUP BY Modelle.Modell_ID
-ORDER BY "bereits verkauft" DESC
+ORDER BY "bereits verkauft" DESC;
 
 
+--2: Alle Autoteiltypen mit Anzahl der Hersteller, Mindestpreis und den zu diesem Preis produzierenden Hersteller
+SELECT tmp1.TeiletypId, Bezeichnung,  Herstelleranzahl, Mindestpreis, Herstellerid, Firmenname
+FROM
+(
+SELECT TeiletypId, Bezeichnung, count(*) AS Herstelleranzahl, min(Preis) AS Mindestpreis
+FROM herstellerangebot
+GROUP BY teiletypid, Bezeichnung
+) AS tmp1
+JOIN
+
+(
+SELECT TeiletypID, Herstellerid, Firmenname, Preis
+FROM herstellerangebot
+) AS tmp2
+
+ON tmp1.teiletypid = tmp2.teiletypid AND mindestpreis = preis
+ORDER BY tmp1.Teiletypid;
+
+
+--3: Produktivität der Werke beim Bearbeitung der Werksaufträge hinsichtlich der gebauten Autos pro Zeit
+WITH tmp AS (
+SELECT auftragsnummer AS aid, anzahl, modell
+FROM kundensicht
+)
+
+
+SELECT WID, avg(tmp2.Effizienz) AS "durchnittl. Werksperformance"
+FROM
+(
+SELECT wid, aid, age(herstellungsende, herstellungsbeginn) AS zeit, anzahl, modell, Anzahl /  (SELECT (EXTRACT(epoch FROM age(herstellungsende, herstellungsbeginn))/3600 ):: integer) AS Effizienz
+FROM archivierteWerksaufträge
+JOIN tmp
+USING (aid)
+ORDER BY Effizienz DESC
+) AS tmp2
+GROUP BY WID
+
+
+--4: Berechnung des Profits der einzelnen Modelle unter Berücksichtung des
+--   Preisunterschieds zwischen Ein- und Verkauf prozentual und absolut.
 
 
