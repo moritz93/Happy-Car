@@ -5,10 +5,10 @@
 -- Bietet Kundenname, Modellname, Vor. Lieferdatum, Anzahl, Preis und Auftragsnummer aller Aufträge einer Schnittstelle an
 CREATE OR REPLACE VIEW Kundensicht AS
 	WITH Kundeninfo AS
-		(SELECT Vorname, Nachname, Aufträge.KundenID AS KundenID, Aufträge.AID AS Auftrag1 FROM Aufträge JOIN Personen ON Aufträge.KundenID = Personen.PID),
+		(SELECT Vorname, Nachname, Aufträge.KundenID AS KundenID, Aufträge.Status AS Auftragsstatus, Aufträge.AID AS Auftrag1 FROM Aufträge JOIN Personen ON Aufträge.KundenID = Personen.PID),
 	Modellname AS
 		(SELECT Bezeichnung, Aufträge.AID AS Auftrag2 FROM Aufträge JOIN Modelle ON Aufträge.Modell_ID = Modelle.Modell_ID)
-	SELECT Vorname, Nachname, tmp.KundenID AS KundenID, Bezeichnung AS Modell, Vorraussichtliches_Lieferdatum, Datum AS Auftrag_erteilt_am, Anzahl, Preis, AID AS Auftragsnummer 
+	SELECT Vorname, Nachname, tmp.KundenID AS KundenID, Bezeichnung AS Modell, Vorraussichtliches_Lieferdatum, Datum AS Auftrag_erteilt_am, Anzahl, Preis, AID AS Auftragsnummer, Auftragsstatus
 	FROM (SELECT * FROM Kundeninfo JOIN Modellname ON Auftrag1 = Auftrag2) AS tmp JOIN Aufträge on AID = Auftrag1;
 
 
@@ -18,7 +18,7 @@ CREATE OR REPLACE VIEW Herstellerangebot AS
 	WITH Herstellerteile AS
 		(SELECT Hersteller.HID AS HID, Firmenname, TeiletypID, Bezeichnung, Preis, Zeit FROM Hersteller JOIN produzieren ON Hersteller.HID = produzieren.HID 
 		JOIN Autoteiltypen USING (TeiletypID))
-	SELECT Firmenname, HID AS Herstelleridentifikationsnummer, TeiletypID, Preis, Zeit FROM Herstellerteile;
+	SELECT Firmenname, HID AS Herstelleridentifikationsnummer, TeiletypID, Bezeichnung, Preis, Zeit FROM Herstellerteile;
 
 -- Notwendig da laut Postgres Doku von CREATE RULE:
 -- "There is a catch if you try to use conditional rules for view updates: 
@@ -70,6 +70,8 @@ CREATE OR REPLACE VIEW Autolagerarbeitersicht AS
 
 
 -- Die Schnittstelle über die ein Werksarbeiter Zugriff auf die Werksaufträge hat
+-- Diese führen einen Scan durch sobald alle Autos eines Werksauftrags produziert wurden um das Produktionsende zu vermerken
+-- Es ist ihnen nicht gestattet Werk- oder Auftragsnummer zu ändern.
 CREATE OR REPLACE VIEW Werksarbeitersicht AS
 	SELECT WID AS Werknummer, AID AS Auftragsnummer, Status FROM Werksaufträge;
 
@@ -161,7 +163,7 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 	
 -- Personalmanagement -> Sicht die alle Spezialisierungen konsolidiert
 
--- TODO: Ausnahmen werfen
+
 -- TODO: Überall wo etwas mit Aufträgen gemacht wird darauf achten dass auch ein Auftragsstatus übergeben wird
 -- TODO: test spezialisierungen update personal
 -- TODO: Sicht fürs Kundeneinfügen
