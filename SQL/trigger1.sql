@@ -326,9 +326,11 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 			END LOOP;
 		END IF;
 	ELSE	--NEIN, dann produziere
-		FOR werk IN (SELECT WID FROM Werksaufträge)
+		FOR werk IN (SELECT WID FROM Werke)
 		LOOP
-			IF (minwerktime>getWerksauslastung(werk)) THEN
+			RAISE NOTICE 'Minwerktime: % ', minwerktime;
+			RAISE NOTICE 'Werksauslastung: %',getWerksauslastung(werk);
+			IF (minwerktime>=getWerksauslastung(werk)) THEN
 				minwerktime=getWerksauslastung(werk);
 				minwerkid=werk;
 			END IF;
@@ -406,25 +408,24 @@ CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
 CREATE FUNCTION calculatePrice() RETURNS TRIGGER AS
 	$$
 	DECLARE
-	rabatt integer;
+	var_rabatt integer;
 	price numeric(10,2);
 	
 	BEGIN
-	rabatt := 0;
+	var_rabatt := 0;
 	-- Kunde ist Kontaktperson / Großhändler
 	IF (EXISTS (SELECT 1 FROM Kontaktpersonen WHERE PID = NEW.KundenID)) THEN
-		rabatt := (SELECT Rabatt FROM ( SELECT *
+		var_rabatt := (SELECT Rabatt FROM ( SELECT *
 						FROM Aufträge
 						JOIN Kontaktpersonen
 						ON NEW.KundenID = Kontaktpersonen.PID
 					     ) AS tmp1
 					JOIN Großhändler
-					ON tmp1.GID = Großhändler.GID);	
+					ON tmp1.GID = Großhändler.GID LIMIT 1);	
 	END IF;
-	price := (100-rabatt) * (SELECT Preis FROM Modelle WHERE NEW.Modell_ID = Modelle.Modell_ID) * NEW.Anzahl;
-
+	price := (100-var_rabatt) * (SELECT Preis FROM Modelle WHERE NEW.Modell_ID = Modelle.Modell_ID) * NEW.Anzahl/100;
 	UPDATE Aufträge SET Preis = price WHERE Aufträge.AID = NEW.AID;
-	
+	RETURN NEW;
 	END; $$ LANGUAGE plpgsql;
 	
 CREATE TRIGGER calculatePrice AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE PROCEDURE calculatePrice();
