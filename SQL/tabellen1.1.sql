@@ -34,7 +34,7 @@ CREATE TABLE Mitarbeiter (
 	PID integer,
 	Beschäftigungsbeginn date NOT NULL,
 	Gehalt numeric(10,2) NOT NULL,
-	Beschäftigungsende DEFAULT NULL,
+	Beschäftigungsende date DEFAULT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Personen,
 
