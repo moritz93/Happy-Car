@@ -235,13 +235,14 @@ CREATE TABLE LKWs (
 	Kaufdatum date NOT NULL,
 
 	CONSTRAINT lkwsPK PRIMARY KEY (LKW_ID)
-	-- Bei löschen soll in ausgeführten Lieferungen NULL bei LKW stehen
-	ON DELETE SET NULL
+	
+	
 );
 
 
 -- Lieferdatum null = noch nicht ausgeliefert
 CREATE TABLE liefert (
+	-- Bei löschen soll in ausgeführten Lieferungen NULL bei LKW stehen
 	LKW_ID integer NOT NULL,
 	KFZ_ID integer,
 	Modell_ID integer,
@@ -252,7 +253,7 @@ CREATE TABLE liefert (
 
 	FOREIGN KEY (KFZ_ID, Modell_ID) REFERENCES Autos,
 	FOREIGN KEY (MID) REFERENCES Mitarbeiter,
-	FOREIGN KEY (LKW_ID) REFERENCES LKWs,
+	FOREIGN KEY (LKW_ID) REFERENCES LKWs ON DELETE SET NULL,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
 	
 	CONSTRAINT liefertPK PRIMARY KEY (KFZ_ID, MID, AID)
