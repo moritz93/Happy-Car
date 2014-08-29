@@ -169,7 +169,7 @@ CREATE TABLE Aufträge (
 	
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
 	FOREIGN KEY (KundenID) REFERENCES Kunden,
-	FOREIGN KEY (MitarbeiterID) REFERENCES Verwaltungsangestellte,
+	FOREIGN KEY (MitarbeiterID) REFERENCES Mitarbeiter,
 
 	CONSTRAINT aufträgePK PRIMARY KEY (AID),
 	
@@ -246,9 +246,10 @@ CREATE TABLE liefert (
 	MID integer,
 	AID integer,
 	Lieferdatum date,
+	
 
 	FOREIGN KEY (KFZ_ID, Modell_ID) REFERENCES Autos,
-	FOREIGN KEY (MID) REFERENCES LKW_Fahrer,
+	FOREIGN KEY (MID) REFERENCES Mitarbeiter,
 	FOREIGN KEY (LKW_ID) REFERENCES LKWs,
 	FOREIGN KEY (AID) REFERENCES Aufträge,
 	
@@ -277,7 +278,7 @@ CREATE TABLE produzieren (
 	CONSTRAINT validPrice CHECK (Preis>0)
 );
 
--- TODO Relationales Modell brauch neues Feld Status in {ARCHIVIERT, BESTELLT}
+
 CREATE DOMAIN Bestellungsstatus AS varchar(10) CHECK (VALUE~'ARCHIVIERT' OR VALUE~'BESTELLT');
 
 CREATE TABLE bestellt (

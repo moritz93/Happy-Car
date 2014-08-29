@@ -45,4 +45,51 @@ CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
 	
 CREATE CONSTRAINT TRIGGER validDelivery AFTER INSERT OR UPDATE ON liefert INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE newDelivery();
 
+--5. Beim Einfügen eines neuen Auftrags muss der Mitarbeiter ein Verwaltungsangestellter sein.
+CREATE FUNCTION newOrderCheckWorker() RETURNS TRIGGER AS
+	$$ BEGIN
+		IF(NOT EXISTS(SELECT 1 FROM Verwaltungsangestellte WHERE PID=NEW.MID)) THEN
+			ROLLBACK TRANSACTION;
+			RAISE EXCEPTION 'Der Mitarbeiter mit ID % ist kein Verwaltunsangestellter', NEW.MID;
+		END IF;
+	END; $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER validInsertInLiefert AFTER INSERT ON Aufträge INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE newOrderCheckWorker();
+
+--6. Beim Einfügen einer neuen Lieferung, muss der Mitarbeiter ein LKW-Fahrer sein.
+CREATE FUNCTION newDeliveryCheckWorker() RETURNS TRIGGER AS
+	$$ BEGIN
+		IF(NOT EXISTS (SELECT 1 FROM LKW_Fahrer WHERE PID=NEW.MID)) THEN
+			ROLLBACK TRANSACTION;
+			RAISE EXCEPTION 'Der Mitarbeiter mit ID % ist kein LKW_Fahrer',NEW.MID;
+		END IF;
+	END; $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER validInsertInDelivery AFTER INSERT ON liefert INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE newDeliveryCheckWorker();
+
+--7. Beim Erstellen/Ändern eines neuen Modells muss es auch Hersteller für alle benötigten Teile geben
+CREATE FUNCTION changeOnModell() RETURNS TRIGGER AS
+	$$ BEGIN
+		IF(EXISTS(SELECT 1 FROM Modellteile WHERE TeiletypID IN (SELECT TeiletypID FROM Autoteiltypen EXCEPT (Autoteiletypen JOIN produzieren USING TeiletypID)) THEN
+			ROLLBACK TRANSACTION;
+			RAISE EXCEPTION 'Nicht für alle benötigten Teile ist ein Hersteller verfügbar';
+		END IF;
+	END; $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER validChangeInModellTeile AFTER INSERT OR UPDATE ON Modellteile INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE newOrderCheckWorker();
+			
+--8. Wenn ein Hersteller ein Teil löschen will, darf er nicht der einzige sein, der das Teil produziert.
+CREATE FUNCTION changeOnOffer() RETURNS TRIGGER AS
+	$$ BEGIN
+
+		IF(NEW.Preis>(SELECT maxPreis FROM Autoteiletypen WHERE TeiletypID=NEW.TeiletypID)) THEN
+			ROLLBACK TRANSACTION;
+			RAISE EXCEPTION 'Ein Preis von % für das Teil mit der ID % ist zu teuer',NEW.Preis,NEW.TeiletypID;
+		IF(NOT EXISTS(SELECT 1 FROM produziert WHERE TeiletypID=OLD.TeiletypID AND HID!=OLD.HID)) THEN
+			ROLLBACK TRANSACTION;
+			RAISE EXCEPTION 'Zur Zeit kann die Produktion des Teils mit ID % nicht eingestellt werden.', OLD.TeiletypID
+		END IF;
+	END; $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER validChangeInProduction AFTER DELETE ON produziert INITIALLY DEFERRED FOR EACH ROW EXECUTE PROCEDURE changeOnOffer();
 
