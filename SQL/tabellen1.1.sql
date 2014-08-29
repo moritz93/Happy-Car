@@ -235,6 +235,8 @@ CREATE TABLE LKWs (
 	Kaufdatum date NOT NULL,
 
 	CONSTRAINT lkwsPK PRIMARY KEY (LKW_ID)
+	-- Bei löschen soll in ausgeführten Lieferungen NULL bei LKW stehen
+	ON DELETE SET NULL
 );
 
 
