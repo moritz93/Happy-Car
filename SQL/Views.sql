@@ -241,21 +241,12 @@ CREATE OR REPLACE VIEW Produktion AS
 
 
 
--- Über folgende Sichten können die Archive eingesehen werden:
-CREATE OR REPLACE VIEW archivierteAutos AS
-	SELECT * FROM Autos WHERE Status = 'ARCHIVIERT';
+-- Sicht auf alle Fahrzeuge in der LKW Fahrzeugflotte
+CREATE OR REPLACE VIEW Fuhrpark AS
+	SELECT * FROM LKWs;
 
-CREATE OR REPLACE VIEW archivierteAufträge AS
-	SELECT * FROM Aufträge WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteWerksaufträge AS
-	SELECT * FROM Werksaufträge WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteBestellungen AS
-	SELECT * FROM bestellt WHERE Status = 'ARCHIVIERT';
-
-CREATE OR REPLACE VIEW archivierteLieferungen AS
-	SELECT * FROM liefert WHERE Lieferdatum IS NOT NULL;
+CREATE OR REPLACE RULE newVehicle AS ON INSERT TO Fuhrpark
+DO INSTEAD INSERT INTO LKWs(Kaufdatum) VALUES (NEW.Kaufdatum);
 
 
 
@@ -268,8 +259,11 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 
 
 -- TODO: test spezialisierungen update personal
--- TODO: Sicht fürs Kundeneinfügen
+
 -- TODO: Sicht zum erstellen von Werken machen
+-- TODO: LKW einfügen sicht
+-- SICHT alleas autoteile
+-- TODO: Modellsicht -> hinzufügen
 
 
 
@@ -506,3 +500,22 @@ CREATE OR REPLACE RULE updateReifen AS ON UPDATE TO IngenieursichtReifen
 DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
 	UPDATE Reifen SET Farbe = NEW.Farbe, Zoll = NEW.Zoll, Felgenmaterial = NEW.Felgenmaterial
 	WHERE TeiletypID = NEW.TeiletypID);
+
+
+
+-- Über folgende Sichten können die Archive eingesehen werden:
+CREATE OR REPLACE VIEW archivierteAutos AS
+	SELECT * FROM Autos WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteAufträge AS
+	SELECT * FROM Aufträge WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteWerksaufträge AS
+	SELECT WID, Name AS Werkname, AID, Status, Herstellungsbeginn, Herstellungsende
+	FROM Werksaufträge JOIN Werke USING (WID) WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteBestellungen AS
+	SELECT * FROM bestellt WHERE Status = 'ARCHIVIERT';
+
+CREATE OR REPLACE VIEW archivierteLieferungen AS
+	SELECT * FROM liefert WHERE Lieferdatum IS NOT NULL;
