@@ -16,7 +16,8 @@ CREATE OR REPLACE VIEW Kundensicht AS
 -- Erlaubt einem Hersteller sein Teileangebot einzusehen und ggf. anzupassen
 CREATE OR REPLACE VIEW Herstellerangebot AS
 	WITH Herstellerteile AS
-		(SELECT Hersteller.HID AS HID, Firmenname, TeiletypID, Preis, Zeit FROM Hersteller JOIN produzieren ON Hersteller.HID = produzieren.HID)
+		(SELECT Hersteller.HID AS HID, Firmenname, TeiletypID, Bezeichnung, Preis, Zeit FROM Hersteller JOIN produzieren ON Hersteller.HID = produzieren.HID 
+		JOIN Autoteiltypen USING (TeiletypID))
 	SELECT Firmenname, HID AS Herstelleridentifikationsnummer, TeiletypID, Preis, Zeit FROM Herstellerteile;
 
 -- Notwendig da laut Postgres Doku von CREATE RULE:
@@ -360,7 +361,7 @@ DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPrei
 
 CREATE OR REPLACE RULE insertTür AS ON INSERT TO IngenieursichtTüren
 DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Türen VALUES (lastVal(), Farbe, Türart));
+	INSERT INTO Türen VALUES (lastVal(), NEW.Farbe, NEW.Türart));
 
 CREATE OR REPLACE RULE insertFenster AS ON INSERT TO IngenieursichtFenster
 DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
@@ -371,21 +372,26 @@ DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPrei
 	INSERT INTO Reifen VALUES (lastVal(), NEW.Farbe, NEW.Zoll, NEW.Felgenmaterial));
 
 CREATE OR REPLACE RULE updateMotor AS ON UPDATE TO IngenieursichtMotoren
-DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Motoren VALUES (lastVal(), NEW.PS, NEW.Drehzahl, NEW.Verbrauch, NEW.Spritart));
+DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
+	UPDATE Motoren SET PS = NEW.PS, Drehzahl = NEW.Drehzahl, Verbrauch = NEW.Verbrauch, Spritart = NEW.Spritart 
+	WHERE TeiletypID = NEW.TeiletypID);
 
-CREATE OR REPLACE RULE insertKarosserie AS ON INSERT TO IngenieursichtKarosserien
-DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Karosserien VALUES (lastVal(), NEW.Farbe, NEW.Material, NEW.Höhe, NEW.Breite, NEW.Länge));
+CREATE OR REPLACE RULE updateKarosserie AS ON UPDATE TO IngenieursichtKarosserien
+DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
+	UPDATE Karosserien SET Farbe = NEW.Farbe, Material = NEW.Material, Höhe = NEW.Höhe, Breite = NEW.Breite, Länge = NEW.Länge
+	WHERE TeiletypID = NEW.TeiletypID);
 
-CREATE OR REPLACE RULE insertTür AS ON INSERT TO IngenieursichtTüren
-DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Türen VALUES (lastVal(), Farbe, Türart));
+CREATE OR REPLACE RULE updateTür AS ON UPDATE TO IngenieursichtTüren
+DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
+	UPDATE Türen SET Farbe = NEW.Farbe, Türart = NEW.Türart
+	WHERE TeiletypID = NEW.TeiletypID);
+	
+CREATE OR REPLACE RULE updateFenster AS ON UPDATE TO IngenieursichtFenster
+DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
+	UPDATE Fenster SET Tönung = NEW.Tönung, Glasart = NEW.Glasart
+	WHERE TeiletypID = NEW.TeiletypID);
 
-CREATE OR REPLACE RULE insertFenster AS ON INSERT TO IngenieursichtFenster
-DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Fenster VALUES (lastVal(), NEW.Tönung, NEW.Glasart));
-
-CREATE OR REPLACE RULE insertReifen AS ON INSERT TO IngenieursichtReifen
-DO INSTEAD (INSERT INTO Autoteiltypen(maxPreis, Bezeichnung) VALUES (NEW.maxPreis, NEW.Bezeichnung);
-	INSERT INTO Reifen VALUES (lastVal(), NEW.Farbe, NEW.Zoll, NEW.Felgenmaterial));
+CREATE OR REPLACE RULE updateReifen AS ON UPDATE TO IngenieursichtReifen
+DO INSTEAD (UPDATE Autoteiltypen SET maxPreis = NEW.maxPreis, Bezeichnung = NEW.Bezeichnung WHERE TeiletypID = OLD.TeiletypID;
+	UPDATE Reifen SET Farbe = NEW.Farbe, Zoll = NEW.Zoll, Felgenmaterial = NEW.Felgenmaterial
+	WHERE TeiletypID = NEW.TeiletypID);
