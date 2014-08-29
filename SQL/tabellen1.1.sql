@@ -13,7 +13,6 @@
 	CONSTRAINT validEmail CHECK (Email LIKE '%_@__%.__%'),
 	-- PLZ muss fünfstellig sein.
 	CONSTRAINT validPLZ CHECK (PLZ LIKE '_____')
-	--CONSTRAINT validPLZ CHECK (PLZ ~ '/^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/'),
 );
 
 CREATE TABLE Werke (
@@ -106,7 +105,6 @@ CREATE TABLE Großhändler (
 	Rabatt integer,
 	
 	CONSTRAINT validPLZ CHECK (PLZ LIKE '_____'),
-	--CONSTRAINT validPLZ CHECK (PLZ ~ '/^([0]{1}[1-9]{1}|[1-9]{1}[0-9]{1})[0-9]{3}$/'),
 	CONSTRAINT validDiscount CHECK (rabatt>=0 AND rabatt<=100),
 	CONSTRAINT großhändlerPK PRIMARY KEY (GID)
 );
@@ -199,6 +197,7 @@ CREATE TABLE Autoteiltypen (
 	Bezeichnung varchar NOT NULL,
 	
 	CONSTRAINT autoteiltypenPK PRIMARY KEY (TeiletypID),
+	
 	CONSTRAINT validMaxPrice CHECK (maxPreis>0)
 );
 
@@ -261,7 +260,7 @@ CREATE TABLE Hersteller (
 	CONSTRAINT herstellerPK PRIMARY KEY (HID)
 );
 
---TODO: Zeit eingefügt, in ER etc machen unso is klar
+
 CREATE TABLE produzieren (
 	TeiletypID integer,
 	HID integer,
@@ -276,9 +275,7 @@ CREATE TABLE produzieren (
 	CONSTRAINT validPrice CHECK (Preis>0)
 );
 
---ID bei bestellt eingeführt
---Auftragsid als Attribut hinzugefügt
--- TODO anzahl added -> ER-Modell, Relationales Modell brauch neues Feld Status in {ARCHIVIERT, BESTELLT}
+-- TODO Relationales Modell brauch neues Feld Status in {ARCHIVIERT, BESTELLT}
 CREATE DOMAIN Bestellungsstatus AS varchar(10) CHECK (VALUE~'ARCHIVIERT' OR VALUE~'BESTELLT');
 
 CREATE TABLE bestellt (
@@ -299,7 +296,6 @@ CREATE TABLE bestellt (
 	CONSTRAINT bestelltPK PRIMARY KEY (BID)
 );
 
--- TODO on insert: via AID wird teileverfügbarkeit gecheckt (ausgelöst durch einscannen von mitarbeiter)
 --Auftrag NULL bedeutet, dass Teil ist keinem Auftrag zugeordnet, also verfügbar.
 CREATE TABLE Autoteile (
 	TeileID serial,
