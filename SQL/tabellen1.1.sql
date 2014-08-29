@@ -34,6 +34,7 @@ CREATE TABLE Mitarbeiter (
 	PID integer,
 	Beschäftigungsbeginn date NOT NULL,
 	Gehalt numeric(10,2) NOT NULL,
+	Beschäftigungsende DEFAULT NULL,
 	
 	FOREIGN KEY (PID) REFERENCES Personen,
 
@@ -164,6 +165,7 @@ CREATE TABLE Aufträge (
 	KundenID integer NOT NULL,
 	MitarbeiterID integer NOT NULL,
 	Status Auftragsstatus DEFAULT 'WARTEND',
+	
 	
 	FOREIGN KEY (Modell_ID) REFERENCES Modelle,
 	FOREIGN KEY (KundenID) REFERENCES Kunden,
