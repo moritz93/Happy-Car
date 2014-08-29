@@ -1,55 +1,8 @@
-﻿--Werksid not Null trigger 
---checked :)
-CREATE FUNCTION checkWerksid() RETURNS TRIGGER AS
-	$$ BEGIN
-		IF(NEW.wid IS NULL) THEN RAISE EXCEPTION 'Wid bei Insert NULL';
-		END IF; 
-		RETURN NEW;
-	END; $$ LANGUAGE plpgsql;
-
-	
-CREATE TRIGGER validInsertWerksarbeiter BEFORE INSERT ON Werksarbeiter FOR EACH ROW EXECUTE PROCEDURE checkWerksid();
-
-CREATE TRIGGER validInsertTeilelagerarbeiter BEFORE INSERT ON Teilelagerarbeiter FOR EACH ROW EXECUTE PROCEDURE checkWerksid();
-
-
---License at least three years trigger
---checked :)
---BEM: Genauigkeit auf Monat, Tage ignoriert.
-CREATE FUNCTION checkLicenseDate() RETURNS TRIGGER AS
-	$$ BEGIN
-		IF(now() - NEW.führerscheindatum <= interval '3 years') THEN RAISE EXCEPTION 'Führerschein noch nicht lange genug';
-		END IF;
-		RETURN NEW;
-	END; $$ LANGUAGE plpgsql;
-CREATE TRIGGER validInsertLKWFahrer BEFORE INSERT ON lkw_fahrer FOR EACH ROW EXECUTE PROCEDURE checkLicenseDate();
-
---began to work in past trigger
---checked :)
-CREATE FUNCTION checkBeginn() RETURNS TRIGGER AS
-	$$ BEGIN
-		IF(NEW.beschäftigungsbeginn > now()) THEN RAISE EXCEPTION 'Beschäftigungsbeginn in der Zukunft';
-		END IF; 
-		RETURN NEW;
-	END; $$ LANGUAGE plpgsql;
-CREATE TRIGGER validInsertMitarbeiter BEFORE INSERT ON mitarbeiter FOR EACH ROW EXECUTE PROCEDURE checkBeginn();
-
-
-
---New Delivery trigger
---checked :)
-CREATE FUNCTION newDelivery() RETURNS TRIGGER AS
-	$$ BEGIN
-		UPDATE Autos SET Status='LIEFERND' WHERE kfz_id=NEW.kfz_id AND modell_id=NEW.modell_id;
-		RETURN NEW;
-	END;$$ LANGUAGE plpgsql;
-	
-CREATE TRIGGER setOnDelivery AFTER INSERT ON liefert FOR EACH ROW EXECUTE PROCEDURE newDelivery();
-
-
-
---Delivery finished trigger
---checked :)
+--Lieferungen können nicht gelöscht werden, stattdessen werden sie archiviert.
+--@param $1 - Die KFZ_ID des Fahrzeugs, das geliefert wurde
+--@param $2 - Die Modell_ID des Fahrzeugs
+--@param $3 - Die ID des LKW-Fahrers
+--@param $4 - Die ID des Auftrags.
 CREATE FUNCTION finishedDelivery(integer, integer, integer, integer) RETURNS boolean AS
 	$$ BEGIN
 		UPDATE Autos SET Status='ARCHIVIERT' WHERE kfz_id=$1 AND modell_id=$2;
@@ -59,6 +12,8 @@ CREATE FUNCTION finishedDelivery(integer, integer, integer, integer) RETURNS boo
 	END; $$ LANGUAGE plpgsql;
 CREATE RULE setOnDeliveryFinished AS ON DELETE TO liefert DO INSTEAD SELECT finishedDelivery(OLD.kfz_id, OLD.modell_id, OLD.MID, OLD.AID);
 
+--Startet in einem Werk den nächsten Auftrag, falls möglich.
+--@param $1 - Das Werk, in dem geprüft werden soll
 CREATE FUNCTION checkAvailableWork(integer) RETURNS boolean AS
 	$$
 	DECLARE 
@@ -108,7 +63,7 @@ CREATE FUNCTION checkAvailableWork(integer) RETURNS boolean AS
 	RETURN false;
 END; $$ LANGUAGE plpgsql;
 
---car parts arrived
+--Sobald Teile ankommen muss geprüft werden, ob ein Auftrag zum Ausführen bereit ist.
 CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
@@ -128,12 +83,13 @@ CREATE FUNCTION carPartsArrived() RETURNS TRIGGER AS
 		PERFORM checkAvailableWork(OLD.WID);
 		RETURN NEW;
 	END; $$ LANGUAGE plpgsql;
--- TODO Falls wir eine archivtabelle einführen, dann bei OnDelete, ansonsten bei Update
+
 CREATE TRIGGER setOnCarPartsArrived AFTER UPDATE ON bestellt FOR EACH ROW EXECUTE PROCEDURE carPartsArrived();
 
 
 
---on insert Werksaufträge
+--Wählt aus bei welchem Hersteller ein Teil bestellt werden soll.
+--@param $1 - Die ID des Teiletyps, der bestellt werden soll.
 CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS 
 	$$ BEGIN
 		RETURN
@@ -148,7 +104,7 @@ CREATE FUNCTION getBestManufacturer(integer) RETURNS integer AS
 	END; $$ LANGUAGE plpgsql;
 
 
--- on insert Werksaufträge
+-- Wenn ein neuer Auftrag im Werk ankommt muss das Lager geprüft werden, eventuell Teile bestellt werden und eine Produktion kann unter Umständen schon beginnen.
 CREATE FUNCTION insertInJobs() RETURNS TRIGGER AS
 	$$ 
 	DECLARE
@@ -211,28 +167,35 @@ CREATE TRIGGER onInsertWerksaufträge AFTER INSERT ON Werksaufträge FOR EACH RO
 
 
 
--- get estimated time for car production in days
+--Schätzt die Werksauslastung ab, wird benötigt um Lieferzeiten zu prognostizieren und Aufträge auf Werke zu verteilen.
+--@param $1 - Die Id des Werkes, das abgeschätzt werden soll.
 CREATE OR REPLACE FUNCTION getWerksauslastung(integer) RETURNS interval AS
 	$$
 	DECLARE
 	auftrag integer;
-	expectedTime integer;
+	expectedTime numeric(20,2);
 	liefer date;
-		
+	switchCounter integer;
 	BEGIN
+	switchCounter:=0;
 	expectedTime=0;
-	FOR auftrag IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1)
+	FOR auftrag IN (SELECT Werksaufträge.AID FROM Werksaufträge WHERE WID=$1 AND Status='WARTEND')
 	LOOP
-
+		switchCounter:=switchCounter +1;
 		liefer:=(SELECT Vorraussichtliches_Lieferdatum FROM Aufträge WHERE AID=auftrag);
-		expectedTime = expectedTime + (liefer - CURRENT_DATE)+1;
+		expectedTime = expectedTime + (liefer - CURRENT_DATE)+0.8;
 	END LOOP;
-	RETURN expectedTime * interval '1 days';
+	expectedTime=expectedTime + switchCounter;
+	IF(EXISTS(SELECT 1 FROM Werksaufträge WHERE WID=$1 AND Status='IN_BEARBEITUNG')) THEN
+		expectedTime=expectedTime + 0.35;
+	END IF;
+	RETURN CEIL(expectedTime) * interval '1 days';
 	END;
 	$$ LANGUAGE plpgsql;
 
 
--- returns the estimated delivery time for a given distance
+--Schätzt die Fahrzeit nach Distanz ab.
+--@param $1 - Die Distanz in KM, die zu fahren ist.
 CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$
 	BEGIN
@@ -242,8 +205,9 @@ CREATE OR REPLACE FUNCTION getTimeForDistance(integer) RETURNS interval AS
 	$$ LANGUAGE plpgsql;
 
 
--- checks if ordered cars are already produced
--- Param (Modell_ID, Anzahl)
+-- Überprüft, ob bestellte Autos bereits im Lager verfügbar sind.
+--@param $1 - Die Modell_ID, der gewünschten Fahrzeuge
+--@param $2 - Die Anzahl der gewünschten Fahrzeuge
 CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$
 	DECLARE 
@@ -255,15 +219,14 @@ CREATE OR REPLACE FUNCTION checkCarStock(integer, integer) RETURNS boolean AS
 	$$ LANGUAGE plpgsql;
 
 
--- checks if a LKW is available - returns LKW_ID or null
--- Param ()
+--Prüft, ob ein LKW zur Lieferung verfügbar ist.
 CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$
 	BEGIN
 		RETURN
 		(	(SELECT LKW_ID FROM LKWs
 			EXCEPT
-			SELECT LKW_ID FROM liefert)
+			SELECT LKW_ID FROM liefert WHERE Lieferdatum IS NULL)
 			ORDER BY LKW_ID ASC
 			FETCH FIRST 1 ROWS ONLY
 		);
@@ -271,13 +234,13 @@ CREATE OR REPLACE FUNCTION checkLkwAvailable() RETURNS integer AS
 	$$ LANGUAGE plpgsql;
 
 
--- checks if a driver is available - returns PID or null
+-- Prüft, ob ein Fahrer zur Lieferung verfügbar ist.
 CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 	$$
 	BEGIN
 	RETURN (	(SELECT PID FROM LKW_Fahrer 
 			EXCEPT 
-			SELECT MID AS PID FROM liefert) 
+			SELECT MID AS PID FROM liefert WHERE Lieferdatum IS NULL) 
 			ORDER BY PID ASC 
 			FETCH FIRST 1 ROWS ONLY
 	);
@@ -286,8 +249,7 @@ CREATE OR REPLACE FUNCTION checkDriverAvailable() RETURNS integer AS
 
 
 
--- onInsert Aufträge, teile Auftrag bestimmtem Werk zu oder liefere ggf. direkt zum kunden
--- TODO Modell_ID bei liefert sinnvoll ?!
+--Sobald ein neuer Auftrag ankommt, muss geprüft werden, ob die Autos schon im Lager verfügbar sind, ansonsten wird der Produktionsauftrag einem Werk mit geringer Auslastung zugewiesen.
 CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	$$
 	DECLARE
@@ -328,13 +290,17 @@ CREATE OR REPLACE FUNCTION insertInOrders() RETURNS TRIGGER AS
 	ELSE	--NEIN, dann produziere
 		FOR werk IN (SELECT WID FROM Werke)
 		LOOP
-			RAISE NOTICE 'Minwerktime: % ', minwerktime;
-			RAISE NOTICE 'Werksauslastung: %',getWerksauslastung(werk);
 			IF (minwerktime>=getWerksauslastung(werk)) THEN
 				minwerktime=getWerksauslastung(werk);
 				minwerkid=werk;
 			END IF;
 		END LOOP;
+		--FOR werk IN (SELECT WID FROM Werke)
+		--LOOP
+		--	IF((SELECT WID FROM Werksaufträge WHERE WID=werk AND Status='IN_BEARBEITUNG') IS NULL) THEN
+		--		minwerkid:=werk;
+		--	END IF;
+		--END LOOP;
 		UPDATE Aufträge SET Vorraussichtliches_Lieferdatum=now()+minwerktime+getTimeForDistance(distance)+(CEIL(counter*1.5/24)*interval '1 days') WHERE AID=NEW.AID;
 		INSERT INTO Werksaufträge (WID, AID) VALUES (minwerkid, NEW.AID);			
 	
@@ -347,7 +313,7 @@ CREATE TRIGGER onInsertAufträge AFTER INSERT ON Aufträge FOR EACH ROW EXECUTE 
 
 
 
---Bei Einchecken eines fertigen Auftrags, Einfügen der Autos
+--Bei Einchecken eines fertigen Auftrags werden die Autos eingefügt.
 CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 	$$
 	DECLARE
@@ -395,16 +361,7 @@ CREATE FUNCTION finishedJob() RETURNS TRIGGER AS
 
 CREATE TRIGGER onFinishedJob AFTER UPDATE ON Werksaufträge FOR EACH ROW EXECUTE PROCEDURE finishedJob();
 
-
-CREATE FUNCTION insertInAutoteile() RETURNS TRIGGER AS
-	$$
-	BEGIN
-	SELECT AID FROM Werksaufträge WHERE WID=NEW.lagert_in GROUP BY WID HAVING Status='ARCHIVIERT';
-	END; $$ LANGUAGE plpgsql;
-
-
-
--- calculate price for inserted order
+--Berechnet den Preis zu einer Bestellung eines Kunden.
 CREATE FUNCTION calculatePrice() RETURNS TRIGGER AS
 	$$
 	DECLARE
