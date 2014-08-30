@@ -242,29 +242,64 @@ CREATE OR REPLACE VIEW Produktion AS
 
 
 -- Sicht auf alle Fahrzeuge in der LKW Fahrzeugflotte
+-- Updates ergeben keinen Sinn, da das Kaufdatum nie angepasst wird
 CREATE OR REPLACE VIEW Fuhrpark AS
 	SELECT * FROM LKWs;
 
 CREATE OR REPLACE RULE newVehicle AS ON INSERT TO Fuhrpark
 DO INSTEAD INSERT INTO LKWs(Kaufdatum) VALUES (NEW.Kaufdatum);
 
+CREATE OR REPLACE RULE deleteVehicle AS ON DELETE TO Fuhrpark
+DO INSTEAD DELETE FROM LKWs WHERE LKW_ID = NEW.LKW_ID;
 
 
--- Manager können über diese Sichten Rückschlüsse auf Ausgaben bzw. Zeitvergeudung ziehen
---CREATE OR REPLACE VIEW Ausgaben AS
-	-- Abweichungen der max preise von den tatsächlichen Preisen angeben -> aggregieren in analysefunktion
 
---CREATE OR REPLACE VIEW Zeitverzögerungen AS
-	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
+-- Architektur erlaubt das Bauen neuer Werke sowie Einsicht aktueller Firmengebäude
+CREATE OR REPLACE VIEW Architektur AS
+	SELECT * FROM Werke;
+
+CREATE OR REPLACE RULE newFactory AS ON INSERT TO Architektur
+DO INSTEAD INSERT INTO Werke(Name) VALUES (NEW.Name);
 
 
--- TODO: test spezialisierungen update personal
 
--- TODO: Sicht zum erstellen von Werken machen
--- TODO: LKW einfügen sicht
--- SICHT alleas autoteile
--- TODO: Modellsicht -> hinzufügen
+-- Teilelager liefert eine Übersicht über alle aktuell in den Lagern vorhandenen Teilen
+CREATE OR REPLACE VIEW Teilelager AS
+	SELECT TeileID, TeiletypID, Bezeichnung, lagert_in, Lieferdatum, AID as AuftragsID
+	FROM Autoteile JOIN Autoteiltypen USING TeiletypID;
 
+
+
+-- Modellsicht ermöglicht einfügen neuer Modelle
+-- Preis und Bezeichnung können angepasst werden
+-- Modelle können nicht ohne weiteres gelöscht werden
+-- Teile eines Modells müssen über die Modellteilesicht eingefügt werden
+CREATE OR REPLACE VIEW Modellsicht AS
+	SELECT * FROM Modelle;
+
+CREATE OR REPLACE RULE modelInsert AS ON INSERT TO Modellsicht
+DO INSTEAD INSERT INTO Modelle(Preis, Bezeichnung) VALUES (NEW.Preis, NEW.Bezeichnung);
+
+CREATE OR REPLACE RULE modelUpdate AS ON UPDATE TO Modellsicht
+DO INSTEAD UPDATE Modelle SET Preis = NEW.Preis, Bezeichnung = NEW.Bezeichnung
+	WHERE Modell_ID = OLD.Modell_ID;
+
+
+
+-- Über die Modellteilesicht können neue Teile eines Modells eingefügt oder entfernt,
+-- sowie die Anzahl bestehender angepasst werden.
+CREATE OR REPLACE VIEW Modellteilesicht AS
+	SELECT * FROM Modellteile;
+
+CREATE OR REPLACE RULE modelPartAddition AS ON INSERT TO Modellteilesicht
+DO INSTEAD INSERT INTO Modellteile VALUES (NEW.Modell_ID, NEW.TeiletypID, NEW.Anzahl);
+
+CREATE OR REPLACE RULE modelPartAdjust AS ON UPDATE TO Modellteilesicht
+DO INSTEAD UPDATE Modellteile SET Anzahl = NEW.Anzahl
+WHERE Modell_ID = OLD.Modell_ID AND TeiletypID = OLD.TeiletypID;
+
+CREATE OR REPLACE RULE modelPartDelete AS ON DELETE TO Modellteilesicht
+DO INSTEAD DELETE FROM Modellteile WHERE Modell_ID = OLD.Modell_ID AND TeiletypID = OLD.TeiletypID;
 
 
 
@@ -519,3 +554,17 @@ CREATE OR REPLACE VIEW archivierteBestellungen AS
 
 CREATE OR REPLACE VIEW archivierteLieferungen AS
 	SELECT * FROM liefert WHERE Lieferdatum IS NOT NULL;
+
+
+
+-- Manager können über diese Sichten Rückschlüsse auf Ausgaben bzw. Zeitvergeudung ziehen
+--CREATE OR REPLACE VIEW Ausgaben AS
+	-- Abweichungen der max preise von den tatsächlichen Preisen angeben -> aggregieren in analysefunktion
+-- TODO: test spezialisierungen update personal
+-- TODO: Fragen: Wo speichern wir den Mitarbeiter, der Herstellungsbeginn und -ende einscannt?
+-- 	Er muss verantwortlich gemacht werden können.
+CREATE OR REPLACE VIEW Zeitverzögerungen AS
+	Select AID, Voraussichtliches_Lieferdatum, Datum AS Eingangsdatum, Herstellungsbeginn, Herstellungsende, Lieferdatum
+	FROM Aufträge JOIN Werksaufträge USING (AID) JOIN liefert USING (AID);
+	-- Evt. noch MitarbeiterID aller zu jeder Phase verantwortlichen Mitarbeiter?
+	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
