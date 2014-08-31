@@ -4,7 +4,7 @@
 CREATE FUNCTION checkWerksid() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(NEW.wid IS NULL) THEN 
-			ROLLBACK TRANSACTION;			
+			--ROLLBACK TRANSACTION;			
 			RAISE EXCEPTION 'Wid bei Insert/Update NULL';
 		END IF; 
 		RETURN NEW;
@@ -18,7 +18,7 @@ CREATE CONSTRAINT TRIGGER validTeilelagerarbeiter AFTER INSERT OR UPDATE ON Teil
 CREATE FUNCTION checkLicenseDate() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(now() - NEW.führerscheindatum <= interval '3 years') THEN 
-			ROLLBACK TRANSACTION;			
+			--ROLLBACK TRANSACTION;			
 			RAISE EXCEPTION 'Führerschein noch nicht lange genug';
 		END IF;
 		RETURN NEW;
@@ -29,7 +29,7 @@ CREATE CONSTRAINT TRIGGER validLkwFahrer AFTER INSERT OR UPDATE ON LKW_Fahrer IN
 CREATE FUNCTION checkBeginn() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(NEW.beschäftigungsbeginn > now()) THEN 
-			ROLLBACK TRANSACTION;			
+			--ROLLBACK TRANSACTION;			
 			RAISE EXCEPTION 'Beschäftigungsbeginn in der Zukunft';
 		END IF; 
 		RETURN NEW;
@@ -49,7 +49,7 @@ CREATE CONSTRAINT TRIGGER validDelivery AFTER INSERT OR UPDATE ON liefert INITIA
 CREATE FUNCTION newOrderCheckWorker() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(NOT EXISTS(SELECT 1 FROM Verwaltungsangestellte WHERE PID=NEW.MitarbeiterID)) THEN
-			ROLLBACK TRANSACTION;
+			--ROLLBACK TRANSACTION;
 			RAISE EXCEPTION 'Der Mitarbeiter mit ID % ist kein Verwaltunsangestellter', NEW.MitarbeiterID;
 		END IF;
 		RETURN NEW;
@@ -61,7 +61,7 @@ CREATE CONSTRAINT TRIGGER validInsertInLiefert AFTER INSERT ON Aufträge INITIAL
 CREATE FUNCTION newDeliveryCheckWorker() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(NOT EXISTS (SELECT 1 FROM LKW_Fahrer WHERE PID=NEW.MID)) THEN
-			ROLLBACK TRANSACTION;
+			--ROLLBACK TRANSACTION;
 			RAISE EXCEPTION 'Der Mitarbeiter mit ID % ist kein LKW_Fahrer',NEW.MID;
 		END IF;
 		RETURN NEW;
@@ -73,7 +73,7 @@ CREATE CONSTRAINT TRIGGER validInsertInDelivery AFTER INSERT ON liefert INITIALL
 CREATE FUNCTION changeOnModell() RETURNS TRIGGER AS
 	$$ BEGIN
 		IF(EXISTS(SELECT 1 FROM Modellteile WHERE TeiletypID IN (SELECT TeiletypID FROM Autoteiltypen EXCEPT (SELECT TeiletypID FROM Autoteiltypen JOIN produzieren USING (TeiletypID))))) THEN
-			ROLLBACK TRANSACTION;
+			--ROLLBACK TRANSACTION;
 			RAISE EXCEPTION 'Nicht für alle benötigten Teile ist ein Hersteller verfügbar';
 		END IF;
 		RETURN NEW;
@@ -86,11 +86,11 @@ CREATE FUNCTION changeOnOffer() RETURNS TRIGGER AS
 	$$ BEGIN
 
 		IF(NEW.Preis>(SELECT maxPreis FROM Autoteiletypen WHERE TeiletypID=NEW.TeiletypID)) THEN
-			ROLLBACK TRANSACTION;
+			--ROLLBACK TRANSACTION;
 			RAISE EXCEPTION 'Ein Preis von % für das Teil mit der ID % ist zu teuer',NEW.Preis,NEW.TeiletypID;
 		END IF;
 		IF(NOT EXISTS(SELECT 1 FROM produzieren WHERE TeiletypID=OLD.TeiletypID AND HID!=OLD.HID)) THEN
-			ROLLBACK TRANSACTION;
+			--ROLLBACK TRANSACTION;
 			RAISE EXCEPTION 'Zur Zeit kann die Produktion des Teils mit ID % nicht eingestellt werden.', OLD.TeiletypID;
 		END IF;
 		RETURN OLD;
