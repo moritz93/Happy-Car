@@ -26,7 +26,7 @@ INSERT INTO admin_Großhändler (Firmenname, Straße, PLZ, Ort, Rabatt) VALUES (
 großh=lastVal();
 INSERT INTO admin_Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES ('Thomas', 'Müller', '12345', 'Gortortstr. 1', 'Tuzfy', 'Trererestr@gmx.de', 0863493738);
 person=lastVal();
-INSERT INTO admin_Kunden VALUES (person, 40000);
+INSERT INTO Kunden VALUES (person, 40000);
 INSERT INTO admin_Kontaktpersonen (PID,GID) VALUES (person,großh);
 END; $$ LANGUAGE plpgsql;
 COMMIT;
@@ -53,10 +53,10 @@ teil3=lastVal();
 INSERT INTO admin_Autoteiltypen (maxpreis, Bezeichnung) VALUES ('81', 'Afhgoae');
 teil4=lastVal();
 
-INSERT INTO admin_produzieren (teil1, 1, '799.99');
-INSERT INTO admin_produzieren (teil2, 1, '99.99');
-INSERT INTO admin_produzieren (teil3, 1, '7889.99');
-INSERT INTO admin_produzieren (teil4, 1, '79.99');
+INSERT INTO admin_produzieren VALUES (teil1, 1, '799.99');
+INSERT INTO admin_produzieren VALUES (teil2, 1, '99.99');
+INSERT INTO admin_produzieren VALUES (teil3, 1, '7889.99');
+INSERT INTO admin_produzieren VALUES (teil4, 1, '79.99');
 
 
 INSERT INTO admin_Motoren VALUES (teil1, 188, 4679,  1, 'Elektro');

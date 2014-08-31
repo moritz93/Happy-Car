@@ -50,4 +50,5 @@ GROUP BY WID
 --4: Berechnung des Profits der einzelnen Modelle unter Berücksichtung des
 --   Preisunterschieds zwischen Ein- und Verkauf prozentual und absolut.
 
-
+--5. Zeigt die Großhändler an, die einen Rabatt haben und was deren teuerste Bestellung bei uns war.
+SELECT count(*) AS "Anzahl Einkäufe", Rabatt, Firmenname, max(Preis) AS "teuerster Einkauf", GID FROM ((Kontaktpersonen JOIN (SELECT KundenID AS PID, Preis FROM Aufträge) AS tmp USING (PID)) JOIN Großhändler USING (GID)) GROUP BY GID, Rabatt, Firmenname HAVING Rabatt>0;
