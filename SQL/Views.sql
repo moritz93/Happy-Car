@@ -564,16 +564,15 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 
 
 
--- 	Er muss verantwortlich gemacht werden können.
 CREATE OR REPLACE VIEW Zeitverzögerungen AS
 	Select AID, Vorraussichtliches_Lieferdatum, Datum AS Eingangsdatum, Herstellungsbeginn, Herstellungsende, Lieferdatum
 	FROM Aufträge JOIN Werksaufträge USING (AID) JOIN liefert USING (AID);
-	-- Evt. noch MitarbeiterID aller zu jeder Phase verantwortlichen Mitarbeiter?
-	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
+
 
 
 -- Views für admins um vollständige logische Datenunabhängigkeit zu gewährleisten
 -- Erlaubt einem Datenbankadministrator im Notfall Eingriffe an allen Tabellen vorzunehmen
+-- Bei der Manipulation von Daten durch diese Sichten ist Vorsicht geboten.
 CREATE OR REPLACE VIEW admin_Personen AS
 	SELECT * FROM Personen;
 	

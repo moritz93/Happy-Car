@@ -37,18 +37,18 @@ teil4 integer;
 car integer;
 BEGIN
 INSERT INTO admin_Autoteiltypen (maxpreis, Bezeichnung) VALUES ('888.99', 'Yufeka');
-teil1=lastVal();
+teil1=currval('autoteiltypen_teiletypid_seq');
 INSERT INTO admin_Autoteiltypen (maxpreis, Bezeichnung) VALUES ('156', 'Oplelj');
-teil2=lastVal();
+teil2=currval('autoteiltypen_teiletypid_seq');
 INSERT INTO admin_Autoteiltypen (maxpreis, Bezeichnung) VALUES ('8897', 'Hungar');
-teil3=lastVal();
+teil3=currval('autoteiltypen_teiletypid_seq');
 INSERT INTO admin_Autoteiltypen (maxpreis, Bezeichnung) VALUES ('81', 'Afhgoae');
-teil4=lastVal();
+teil4=currval('autoteiltypen_teiletypid_seq');
 
-INSERT INTO admin_produzieren VALUES (teil1, 1, '799.99');
-INSERT INTO admin_produzieren VALUES (teil2, 1, '99.99');
-INSERT INTO admin_produzieren VALUES (teil3, 1, '7889.99');
-INSERT INTO admin_produzieren VALUES (teil4, 1, '79.99');
+INSERT INTO admin_produzieren VALUES (teil1, 1, '799.99', 5);
+INSERT INTO admin_produzieren VALUES (teil2, 1, '99.99', 6);
+INSERT INTO admin_produzieren VALUES (teil3, 1, '7889.99', 7);
+INSERT INTO admin_produzieren VALUES (teil4, 1, '79.99', 8);
 
 
 INSERT INTO admin_Motoren VALUES (teil1, 188, 4679,  1, 'Elektro');
@@ -56,7 +56,7 @@ INSERT INTO admin_Türen VALUES (teil2, 'Burgunderrot', 'FLÜGELTÜR');
 INSERT INTO admin_Reifen VALUES (teil4, 'Schwarz', 14, 'Chrom');
 INSERT INTO admin_Karosserien VALUES (teil3, 'Pink', 'Plastik', 654, 170, 300);
 INSERT INTO admin_Modelle (Preis, Bezeichnung) VALUES (15149.99, 'El Aridnai');
-car=lastVal();
+car=currval('modelle_modell_id_seq');
 INSERT INTO admin_Modellteile VALUES (car, teil1 , 1);
 INSERT INTO admin_Modellteile VALUES (car, teil2, 5);
 INSERT INTO admin_Modellteile VALUES (car, teil3, 1);
