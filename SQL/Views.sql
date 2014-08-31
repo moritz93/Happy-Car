@@ -146,10 +146,10 @@ CREATE OR REPLACE RULE insertNewJob AS ON INSERT TO VerwaltungAuftragssicht
 DO INSTEAD INSERT INTO Aufträge(Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (NEW.Modell_ID, NEW.Anzahl, NEW.KundenID, NEW.MitarbeiterID);
 
 CREATE OR REPLACE RULE updateJob AS ON UPDATE TO VerwaltungAuftragssicht
-DO INSTEAD UPDATE Aufträge SET Modell_ID = NEW.Modell_ID, Anzahl = NEW.Anzahl, KundenID = NEW.KundenID, MitarbeiterID = NEW.MitarbeiterID WHERE AID = OLD.AID;
+DO INSTEAD UPDATE Aufträge SET Modell_ID = NEW.Modell_ID, Anzahl = NEW.Anzahl, KundenID = NEW.KundenID, MitarbeiterID = NEW.MitarbeiterID WHERE AID = OLD.Auftragsnummer;
 
 CREATE OR REPLACE RULE deleteJob AS ON DELETE TO VerwaltungAuftragssicht
-DO INSTEAD DELETE FROM Aufträge WHERE AID = OLD.AID;
+DO INSTEAD DELETE FROM Aufträge WHERE AID = OLD.Auftragsnummer;
 
 
 
@@ -616,56 +616,50 @@ CREATE OR REPLACE VIEW admin_Privatkunden AS
 CREATE OR REPLACE VIEW admin_Kontaktpersonen AS
 	SELECT * FROM Kontaktpersonen;
 
-CREATE OR REPLACE VIEW admin_Auftragsstatus AS
-	SELECT * FROM Auftragsstatus;
-
 CREATE OR REPLACE VIEW admin_Aufträge AS
 	SELECT * FROM Aufträge;
 
-CREATE OR REPLACE VIEW adminDateien AS
-	SELECT * FROM Dateien;
-
-CREATE OR REPLACE VIEW adminReifen AS
+CREATE OR REPLACE VIEW admin_Reifen AS
 	SELECT * FROM Reifen;
 
-CREATE OR REPLACE VIEW adminFenster AS
+CREATE OR REPLACE VIEW admin_Fenster AS
 	SELECT * FROM Fenster;
 
-CREATE OR REPLACE VIEW adminTürem AS
+CREATE OR REPLACE VIEW admin_Türen AS
 	SELECT * FROM Türen;
 
-CREATE OR REPLACE VIEW adminKarosserien AS
+CREATE OR REPLACE VIEW admin_Karosserien AS
 	SELECT * FROM Karosserien;
 
-CREATE OR REPLACE VIEW adminMotoren AS
+CREATE OR REPLACE VIEW admin_Motoren AS
 	SELECT * FROM Motoren;
 
-CREATE OR REPLACE VIEW adminAutoteile AS
+CREATE OR REPLACE VIEW admin_Autoteile AS
 	SELECT * FROM Autoteile;
 
-CREATE OR REPLACE VIEW adminBestellt AS
+CREATE OR REPLACE VIEW admin_Bestellt AS
 	SELECT * FROM bestellt;
 
-CREATE OR REPLACE VIEW adminProduzieren AS
+CREATE OR REPLACE VIEW admin_Produzieren AS
 	SELECT * FROM produzieren;
 
-CREATE OR REPLACE VIEW adminHersteller AS
+CREATE OR REPLACE VIEW admin_Hersteller AS
 	SELECT * FROM Hersteller;
 
-CREATE OR REPLACE VIEW adminLiefert AS
+CREATE OR REPLACE VIEW admin_Liefert AS
 	SELECT * FROM liefert;
 
-CREATE OR REPLACE VIEW adminLKWs AS
+CREATE OR REPLACE VIEW admin_LKWs AS
 	SELECT * FROM LKWs;
 
-CREATE OR REPLACE VIEW adminAutos AS
+CREATE OR REPLACE VIEW admin_Autos AS
 	SELECT * FROM Autos;
 
-CREATE OR REPLACE VIEW adminModellteile AS
+CREATE OR REPLACE VIEW admin_Modellteile AS
 	SELECT * FROM Modellteile;
 
-CREATE OR REPLACE VIEW adminAutoteiltypen AS
+CREATE OR REPLACE VIEW admin_Autoteiltypen AS
 	SELECT * FROM Autoteiltypen;
 
-CREATE OR REPLACE VIEW adminWerksaufträge AS
+CREATE OR REPLACE VIEW admin_Werksaufträge AS
 	SELECT * FROM Werksaufträge;
