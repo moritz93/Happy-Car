@@ -271,7 +271,7 @@ CREATE TABLE produzieren (
 	TeiletypID integer,
 	HID integer,
 	Preis numeric(10,2),
-	Zeit integer,
+	Zeit integer, -- represents days
 
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (HID) REFERENCES Hersteller,
