@@ -1,9 +1,9 @@
-﻿--Transaktion, die einen Auftrag der aus mehreren Modellen besteht einfügt.
+﻿--Transaktion, die einen fertigen Auftrag einfügt.
 BEGIN;
-INSERT INTO VerwaltungAuftragssicht (Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (1, 1, 4, 8);
-INSERT INTO VerwaltungAuftragssicht (Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (2, 1, 4, 8);
-INSERT INTO VerwaltungAuftragssicht (Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (3, 1, 4, 8);
-INSERT INTO VerwaltungAuftragssicht (Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (4, 1, 4, 8);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,5, 1, 3);
+UPDATE bestellt SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
+UPDATE Werksaufträge SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
+DELETE FROM liefert WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 COMMIT;
 
 --Transaktion, die einen archivierten Auftrag löscht.
@@ -17,18 +17,10 @@ COMMIT;
 
 --Transaktion, die einen Großhändler mit Kontaktperson einfügt.
 BEGIN;
-DO $$
-DECLARE
-großh integer;
-person integer;
-BEGIN
 INSERT INTO admin_Großhändler (Firmenname, Straße, PLZ, Ort, Rabatt) VALUES ('Fuego Corp', 'IobgabguodeStr. 19', '00000', 'Somewhere', 9);
-großh=lastVal();
 INSERT INTO admin_Personen (Vorname, Nachname, PLZ, Straße, Wohnort, Email, TelNr) VALUES ('Thomas', 'Müller', '12345', 'Gortortstr. 1', 'Tuzfy', 'Trererestr@gmx.de', 0863493738);
-person=lastVal();
-INSERT INTO Kunden VALUES (person, 40000);
-INSERT INTO admin_Kontaktpersonen (PID,GID) VALUES (person,großh);
-END; $$ LANGUAGE plpgsql;
+INSERT INTO Kunden VALUES ((SELECT currval('personen_pid_seq')), 40000);
+INSERT INTO admin_Kontaktpersonen (PID,GID) VALUES ((SELECT currval('personen_pid_seq')),currval('großhändler_gid_seq'));
 COMMIT;
 
 CREATE OR REPLACE VIEW admin_Türen AS
@@ -72,4 +64,10 @@ INSERT INTO admin_Modellteile VALUES (car, teil4, 4);
 END; $$ LANGUAGE plpgsql;
 COMMIT;
 
-
+--Transaktion, die einen Auftrag mit mehrern Modellen in das System einfügt.
+BEGIN;
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,6, 1, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (2,7, 1, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (3,8, 1, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (4,8, 1, 3);
+COMMIT;
