@@ -75,7 +75,8 @@ DO ALSO UPDATE bestellt SET Status = 'ARCHIVIERT' WHERE BID = OLD.BestellungsID 
 -- Mittels dieser Sicht kann ein Autolagerarbeiter den aktuellen Autobestand einsehen
 CREATE OR REPLACE VIEW Autolagerarbeitersicht AS
 	SELECT KFZ_ID AS Fahrgestellnummer, Bezeichnung AS Modell, Status, Name as Werk
-	FROM Autos JOIN Modelle ON Autos.Modell_ID = Modelle.Modell_ID JOIN Werke ON Autos.produziertVon = Werke.WID;
+	FROM Autos JOIN Modelle ON Autos.Modell_ID = Modelle.Modell_ID JOIN Werke ON Autos.produziertVon = Werke.WID
+	WHERE Status = 'LAGERND';
 
 
 
