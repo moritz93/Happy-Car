@@ -75,7 +75,8 @@ DO ALSO UPDATE bestellt SET Status = 'ARCHIVIERT' WHERE BID = OLD.BestellungsID 
 -- Mittels dieser Sicht kann ein Autolagerarbeiter den aktuellen Autobestand einsehen
 CREATE OR REPLACE VIEW Autolagerarbeitersicht AS
 	SELECT KFZ_ID AS Fahrgestellnummer, Bezeichnung AS Modell, Status, Name as Werk
-	FROM Autos JOIN Modelle ON Autos.Modell_ID = Modelle.Modell_ID JOIN Werke ON Autos.produziertVon = Werke.WID;
+	FROM Autos JOIN Modelle ON Autos.Modell_ID = Modelle.Modell_ID JOIN Werke ON Autos.produziertVon = Werke.WID
+	WHERE Status = 'LAGERND';
 
 
 
@@ -141,8 +142,14 @@ CREATE OR REPLACE VIEW VerwaltungAuftragssicht AS
 	Datum AS Auftrag_erteilt_am, Anzahl, Preis, AID AS Auftragsnummer, MitarbeiterID
 	FROM (SELECT * FROM Kundeninfo JOIN Modellname ON Auftrag1 = Auftrag2) AS tmp JOIN Aufträge on AID = Auftrag1;
 
-CREATE OR REPLACE RULE adminInsertNewJob AS ON INSERT TO VerwaltungAuftragssicht
+CREATE OR REPLACE RULE insertNewJob AS ON INSERT TO VerwaltungAuftragssicht
 DO INSTEAD INSERT INTO Aufträge(Modell_ID, Anzahl, KundenID, MitarbeiterID) VALUES (NEW.Modell_ID, NEW.Anzahl, NEW.KundenID, NEW.MitarbeiterID);
+
+CREATE OR REPLACE RULE updateJob AS ON UPDATE TO VerwaltungAuftragssicht
+DO INSTEAD UPDATE Aufträge SET Modell_ID = NEW.Modell_ID, Anzahl = NEW.Anzahl, KundenID = NEW.KundenID, MitarbeiterID = NEW.MitarbeiterID WHERE AID = OLD.AID;
+
+CREATE OR REPLACE RULE deleteJob AS ON DELETE TO VerwaltungAuftragssicht
+DO INSTEAD DELETE FROM Aufträge WHERE AID = OLD.AID;
 
 
 
@@ -557,14 +564,108 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 
 
 
--- Manager können über diese Sichten Rückschlüsse auf Ausgaben bzw. Zeitvergeudung ziehen
---CREATE OR REPLACE VIEW Ausgaben AS
-	-- Abweichungen der max preise von den tatsächlichen Preisen angeben -> aggregieren in analysefunktion
--- TODO: test spezialisierungen update personal
--- TODO: Fragen: Wo speichern wir den Mitarbeiter, der Herstellungsbeginn und -ende einscannt?
 -- 	Er muss verantwortlich gemacht werden können.
 CREATE OR REPLACE VIEW Zeitverzögerungen AS
 	Select AID, Vorraussichtliches_Lieferdatum, Datum AS Eingangsdatum, Herstellungsbeginn, Herstellungsende, Lieferdatum
 	FROM Aufträge JOIN Werksaufträge USING (AID) JOIN liefert USING (AID);
 	-- Evt. noch MitarbeiterID aller zu jeder Phase verantwortlichen Mitarbeiter?
 	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
+
+
+-- Views für admins um vollständige logische Datenunabhängigkeit zu gewährleisten
+-- Erlaubt einem Datenbankadministrator im Notfall Eingriffe an allen Tabellen vorzunehmen
+CREATE OR REPLACE VIEW admin_Personen AS
+	SELECT * FROM Personen;
+	
+CREATE OR REPLACE VIEW admin_Werke AS
+	SELECT * FROM Werke;
+	
+CREATE OR REPLACE VIEW admin_Mitarbeiter AS
+	SELECT * FROM Mitarbeiter;
+	
+CREATE OR REPLACE VIEW admin_Werksarbeiter AS
+	SELECT * FROM Werksarbeiter;
+
+CREATE OR REPLACE VIEW admin_LKW_Fahrer AS
+	SELECT * FROM LKW_Fahrer;
+
+CREATE OR REPLACE VIEW admin_Verwaltungsangestellte AS
+	SELECT * FROM Verwaltungsangestellte;
+
+CREATE OR REPLACE VIEW admin_Lagerarbeiter AS
+	SELECT * FROM Lagerarbeiter;
+
+CREATE OR REPLACE VIEW admin_Teilelagerarbeiter AS
+	SELECT * FROM Teilelagerarbeiter;
+
+CREATE OR REPLACE VIEW admin_Autolagerarbeiter AS
+	SELECT * FROM Autolagerarbeiter;
+
+CREATE OR REPLACE VIEW admin_Großhändler AS
+	SELECT * FROM Großhändler;
+
+CREATE OR REPLACE VIEW admin_Modelle AS
+	SELECT * FROM Modelle;
+
+CREATE OR REPLACE VIEW admin_Kunden AS
+	SELECT * FROM Kunden;
+
+CREATE OR REPLACE VIEW admin_Privatkunden AS
+	SELECT * FROM Privatkunden;
+
+CREATE OR REPLACE VIEW admin_Kontaktpersonen AS
+	SELECT * FROM Kontaktpersonen;
+
+CREATE OR REPLACE VIEW admin_Auftragsstatus AS
+	SELECT * FROM Auftragsstatus;
+
+CREATE OR REPLACE VIEW admin_Aufträge AS
+	SELECT * FROM Aufträge;
+
+CREATE OR REPLACE VIEW adminDateien AS
+	SELECT * FROM Dateien;
+
+CREATE OR REPLACE VIEW adminReifen AS
+	SELECT * FROM Reifen;
+
+CREATE OR REPLACE VIEW adminFenster AS
+	SELECT * FROM Fenster;
+
+CREATE OR REPLACE VIEW adminTürem AS
+	SELECT * FROM Türen;
+
+CREATE OR REPLACE VIEW adminKarosserien AS
+	SELECT * FROM Karosserien;
+
+CREATE OR REPLACE VIEW adminMotoren AS
+	SELECT * FROM Motoren;
+
+CREATE OR REPLACE VIEW adminAutoteile AS
+	SELECT * FROM Autoteile;
+
+CREATE OR REPLACE VIEW adminBestellt AS
+	SELECT * FROM bestellt;
+
+CREATE OR REPLACE VIEW adminProduzieren AS
+	SELECT * FROM produzieren;
+
+CREATE OR REPLACE VIEW adminHersteller AS
+	SELECT * FROM Hersteller;
+
+CREATE OR REPLACE VIEW adminLiefert AS
+	SELECT * FROM liefert;
+
+CREATE OR REPLACE VIEW adminLKWs AS
+	SELECT * FROM LKWs;
+
+CREATE OR REPLACE VIEW adminAutos AS
+	SELECT * FROM Autos;
+
+CREATE OR REPLACE VIEW adminModellteile AS
+	SELECT * FROM Modellteile;
+
+CREATE OR REPLACE VIEW adminAutoteiltypen AS
+	SELECT * FROM Autoteiltypen;
+
+CREATE OR REPLACE VIEW adminWerksaufträge AS
+	SELECT * FROM Werksaufträge;

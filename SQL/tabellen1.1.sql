@@ -383,11 +383,3 @@ CREATE TABLE Reifen (
 	CONSTRAINT validData CHECK (Zoll>0)
 );
 
-CREATE TABLE Dateien (
-	DateiID serial,
-	AID integer,
-	Inhalt text NOT NULL,
-
-	FOREIGN KEY (AID) REFERENCES Aufträge,
-	CONSTRAINT DateiPK PRIMARY KEY (DateiID)
-);
