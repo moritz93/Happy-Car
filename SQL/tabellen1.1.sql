@@ -270,8 +270,8 @@ CREATE TABLE Hersteller (
 CREATE TABLE produzieren (
 	TeiletypID integer,
 	HID integer,
-	Preis numeric(10,2),
-	Zeit integer, -- represents days
+	Preis numeric(10,2) NOT NULL,
+	Zeit integer NOT NULL, -- represents days
 
 	FOREIGN KEY (TeiletypID) REFERENCES Autoteiltypen,
 	FOREIGN KEY (HID) REFERENCES Hersteller,
@@ -348,7 +348,7 @@ CREATE TABLE Karosserien (
 	CONSTRAINT validData CHECK (Höhe>0 AND Breite>0 AND Länge>0)
 );
 
-CREATE DOMAIN Türart AS varchar(10) CHECK (VALUE~'FLÜGELTÜR' OR VALUE~'KOFFERRAUM' OR VALUE~'SCHIEBETÜR' OR VALUE~'NORMAL' );
+CREATE DOMAIN Türart AS varchar(10) CHECK (VALUE~'FLÜGELTÜR' OR VALUE~'KOFFERRAUM' OR VALUE~'SCHIEBETÜR' OR VALUE~'STANDARD' );
 
 CREATE TABLE Türen (
 	TeiletypID integer,
