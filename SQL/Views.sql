@@ -250,7 +250,7 @@ CREATE OR REPLACE RULE newVehicle AS ON INSERT TO Fuhrpark
 DO INSTEAD INSERT INTO LKWs(Kaufdatum) VALUES (NEW.Kaufdatum);
 
 CREATE OR REPLACE RULE deleteVehicle AS ON DELETE TO Fuhrpark
-DO INSTEAD DELETE FROM LKWs WHERE LKW_ID = NEW.LKW_ID;
+DO INSTEAD DELETE FROM LKWs WHERE LKW_ID = OLD.LKW_ID;
 
 
 
@@ -266,7 +266,7 @@ DO INSTEAD INSERT INTO Werke(Name) VALUES (NEW.Name);
 -- Teilelager liefert eine Übersicht über alle aktuell in den Lagern vorhandenen Teilen
 CREATE OR REPLACE VIEW Teilelager AS
 	SELECT TeileID, TeiletypID, Bezeichnung, lagert_in, Lieferdatum, AID as AuftragsID
-	FROM Autoteile JOIN Autoteiltypen USING TeiletypID;
+	FROM Autoteile JOIN Autoteiltypen USING (TeiletypID);
 
 
 
@@ -564,7 +564,7 @@ CREATE OR REPLACE VIEW archivierteLieferungen AS
 -- TODO: Fragen: Wo speichern wir den Mitarbeiter, der Herstellungsbeginn und -ende einscannt?
 -- 	Er muss verantwortlich gemacht werden können.
 CREATE OR REPLACE VIEW Zeitverzögerungen AS
-	Select AID, Voraussichtliches_Lieferdatum, Datum AS Eingangsdatum, Herstellungsbeginn, Herstellungsende, Lieferdatum
+	Select AID, Vorraussichtliches_Lieferdatum, Datum AS Eingangsdatum, Herstellungsbeginn, Herstellungsende, Lieferdatum
 	FROM Aufträge JOIN Werksaufträge USING (AID) JOIN liefert USING (AID);
 	-- Evt. noch MitarbeiterID aller zu jeder Phase verantwortlichen Mitarbeiter?
 	-- Möglichst angeben wieviel Verzögerungen in jeder Phase der Abarbeitung entstanden sind und welcher Mitarbeiter gescannt hat
