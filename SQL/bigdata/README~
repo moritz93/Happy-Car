@@ -1,0 +1,11 @@
+ANLEITUNG ZUM AUFSETZTEN DER DATENBANK MIT VIEL DATEN.
+OPTION A:
+
+1) Schema.sql (Schema) und Konsistenz.sql (Konsistenztrigger) einlesen, dann bigdata.sql einlesen
+2) Alle verbleibenden .sql Dateien einlesen
+
+OPTION B:
+
+1) Alle .sql Dateien AUßER bigdata.sql einlesen
+2) generate_random_data.php ausführen (hierbei werden neue Zufallsdaten erzeugt)
+
