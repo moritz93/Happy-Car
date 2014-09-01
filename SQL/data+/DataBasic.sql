@@ -91,11 +91,11 @@ INSERT INTO Modelle (Preis, Bezeichnung) VALUES
 
 
 INSERT INTO Kunden VALUES
-	(1,100),(4, 300), (6, 104), (9, 304);
+	(1,100),(4, 300), (6, 104), (9, 304), (7, 104);
 
 
 INSERT INTO Privatkunden VALUES
-	(4),(9);
+	(4),(9), (7);
 
 
 INSERT INTO Kontaktpersonen VALUES
