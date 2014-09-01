@@ -154,7 +154,7 @@ FROM kundensicht
 SELECT WID, avg(tmp2.Effizienz) AS "durchnittl. Werksperformance"
 FROM
 (
-SELECT wid, aid, age(herstellungsende, herstellungsbeginn) AS zeit, anzahl, modell, Anzahl /  (SELECT (EXTRACT(epoch FROM age(herstellungsende, herstellungsbeginn))/3600 ):: integer) AS Effizienz
+SELECT wid, aid, age(herstellungsende, herstellungsbeginn) AS zeit, anzahl, modell, Anzahl /  1 + (SELECT (EXTRACT(epoch FROM age(herstellungsende, herstellungsbeginn))/3600 ):: integer) AS Effizienz
 FROM archivierteWerksaufträge
 JOIN tmp
 USING (aid)
