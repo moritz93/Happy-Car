@@ -23,9 +23,6 @@ INSERT INTO Kunden VALUES ((SELECT currval('personen_pid_seq')), 40000);
 INSERT INTO admin_Kontaktpersonen (PID,GID) VALUES ((SELECT currval('personen_pid_seq')),currval('großhändler_gid_seq'));
 COMMIT;
 
-CREATE OR REPLACE VIEW admin_Türen AS
-	SELECT * FROM Türen;
-
 --Transaktion, die ein neues Modell mit Autoteiltypen einfügt.
 BEGIN;
 DO $$

@@ -14,4 +14,7 @@ SELECT * FROM Zeitverzögerungen WHERE (vorraussichtliches_Lieferdatum<lieferdat
 SELECT * FROM Zeitverzögerungen WHERE (Herstellungsende-Herstellungsbeginn)>10;
 --Zeige alle Modelle mit Teilen, die schonmal verkauft wurden.
 SELECT Modell_id, TeiletypID, ModellteileSicht.anzahl FROM ModellteileSicht JOIN admin_Aufträge USING (Modell_ID);
-
+--Zeige aktuelle Produktion
+SELECT * FROM Produktion;
+--Zeige Kunden
+SELECT * FROM VerwaltungKundenaufnahme;
