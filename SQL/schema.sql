@@ -6,13 +6,14 @@
 	Straße varchar(50) NOT NULL,
 	Wohnort varchar(50) NOT NULL,
 	Email varchar(50) NOT NULL,
-	TelNr bigint NOT NULL,
+	TelNr varchar(20) NOT NULL,
 	
 	CONSTRAINT personenPK PRIMARY KEY (PID),
 
 	CONSTRAINT validEmail CHECK (Email LIKE '%_@__%.__%'),
 	-- PLZ muss fünfstellig sein.
 	CONSTRAINT validPLZ CHECK (PLZ LIKE '_____')
+
 );
 
 CREATE TABLE Werke (
