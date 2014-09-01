@@ -6,7 +6,7 @@
 	Straße varchar(50) NOT NULL,
 	Wohnort varchar(50) NOT NULL,
 	Email varchar(50) NOT NULL,
-	TelNr varchar(20) NOT NULL,
+	TelNr varchar NOT NULL,
 	
 	CONSTRAINT personenPK PRIMARY KEY (PID),
 
