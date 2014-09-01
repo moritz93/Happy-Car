@@ -160,7 +160,7 @@ JOIN tmp
 USING (aid)
 ORDER BY Effizienz DESC
 ) AS tmp2
-GROUP BY WID
+GROUP BY WID;
 
 
 --4. Zeigt an, wieviele der LKWs, die ein Fahrer gefahren hat bereits geschrottet sind.
