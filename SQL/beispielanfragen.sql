@@ -3,12 +3,12 @@
 -- Änderungsoperationen
 
 
-INSERT INTO admin_Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1, 3, 1, 3);
+INSERT INTO admin_Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1, 3, 7, 3);
 UPDATE admin_bestellt SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 UPDATE admin_Werksaufträge SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 DELETE FROM admin_liefert WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 
-INSERT INTO admin_Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1, 4, 1, 3);
+INSERT INTO admin_Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1, 4, 7, 3);
 UPDATE admin_bestellt SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 UPDATE admin_Werksaufträge SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 DELETE FROM admin_liefert WHERE AID=(SELECT currval('Aufträge_aid_seq'));
@@ -16,7 +16,7 @@ DELETE FROM admin_liefert WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 
 --Transaktion, die einen fertigen Auftrag einfügt.
 BEGIN;
-INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,5, 1, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,5, 7, 3);
 UPDATE bestellt SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 UPDATE Werksaufträge SET Status='ARCHIVIERT' WHERE AID=(SELECT currval('Aufträge_aid_seq'));
 DELETE FROM liefert WHERE AID=(SELECT currval('Aufträge_aid_seq'));
@@ -79,10 +79,10 @@ COMMIT;
 
 --Transaktion, die einen Auftrag mit mehrern Modellen in das System einfügt.
 BEGIN;
-INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,6, 1, 3);
-INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (2,7, 1, 3);
-INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (3,8, 1, 3);
-INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (4,8, 1, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (1,6, 7, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (2,7, 7, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (3,8, 7, 3);
+INSERT INTO Aufträge (Modell_ID, Anzahl, KundenID, mitarbeiterID) VALUES (4,8, 7, 3);
 COMMIT;
 
 ---------------------------------------------------------
